@@ -213,6 +213,12 @@
         <option value="Soybean Meal">Soybean Meal</option>
         <option value="Canola">Canola</option>
         <option value="Rough Rice">Rough Rice</option>
+        <optgroup label="── Softs ──">
+        <option value="Coffee">Coffee</option>
+        <option value="Sugar">Sugar No.11</option>
+        <option value="Cocoa">Cocoa</option>
+        <option value="Cotton">Cotton No.2</option>
+        </optgroup>
       </select>
       <select id="spread-b" style="display:none">
         <option value="Soybeans">vs Soybeans</option>
@@ -221,6 +227,10 @@
         <option value="Soybean Oil">vs Soybean Oil</option>
         <option value="Soybean Meal">vs Soybean Meal</option>
         <option value="Canola">vs Canola</option>
+        <option value="Coffee">vs Coffee</option>
+        <option value="Sugar">vs Sugar</option>
+        <option value="Cocoa">vs Cocoa</option>
+        <option value="Cotton">vs Cotton</option>
       </select>
     </div>
 
@@ -493,7 +503,21 @@ const RAW=[
   {date:"2026-04-14",commodity:"Soybean Oil",prod_net:-214629,prod_chg:9149,mm_net:148320,mm_chg:-2362,oi:892433},
   {date:"2026-04-14",commodity:"Soybean Meal",prod_net:-269255,prod_chg:-32421,mm_net:135743,mm_chg:42203,oi:683714},
   {date:"2026-04-14",commodity:"Canola",prod_net:-43306,prod_chg:30334,mm_net:72829,mm_chg:-25656,oi:343554},
-  {date:"2026-04-14",commodity:"Rough Rice",prod_net:3383,prod_chg:957,mm_net:-3562,mm_chg:-631,oi:13509}
+  {date:"2026-04-14",commodity:"Rough Rice",prod_net:3383,prod_chg:957,mm_net:-3562,mm_chg:-631,oi:13509},
+  // ── Week ending 28 Apr 2026 ──
+  {date:"2026-04-28",commodity:"Corn",prod_net:-554366,prod_chg:-89919,mm_net:264103,mm_chg:79697,oi:2330624},
+  {date:"2026-04-28",commodity:"Wheat",prod_net:-75651,prod_chg:-21607,mm_net:10664,mm_chg:21381,oi:520928},
+  {date:"2026-04-28",commodity:"Soybeans",prod_net:-262938,prod_chg:-1024,mm_net:185282,mm_chg:-7602,oi:1096353},
+  {date:"2026-04-28",commodity:"KC Wheat",prod_net:-90683,prod_chg:-1860,mm_net:30624,mm_chg:2615,oi:322717},
+  {date:"2026-04-28",commodity:"MN Wheat",prod_net:-36295,prod_chg:-5045,mm_net:27666,mm_chg:6647,oi:82837},
+  {date:"2026-04-28",commodity:"Soybean Oil",prod_net:-248697,prod_chg:-5290,mm_net:165725,mm_chg:281,oi:841298},
+  {date:"2026-04-28",commodity:"Soybean Meal",prod_net:-260339,prod_chg:1528,mm_net:121189,mm_chg:333,oi:637906},
+  {date:"2026-04-28",commodity:"Canola",prod_net:-46579,prod_chg:-6423,mm_net:82966,mm_chg:10636,oi:331989},
+  {date:"2026-04-28",commodity:"Rough Rice",prod_net:3895,prod_chg:518,mm_net:-3971,mm_chg:-494,oi:13575},
+  {date:"2026-04-28",commodity:"Coffee",prod_net:-29189,prod_chg:-4213,mm_net:29410,mm_chg:5577,oi:205885},
+  {date:"2026-04-28",commodity:"Sugar",prod_net:-73606,prod_chg:-21910,mm_net:-187345,mm_chg:2215,oi:1153429},
+  {date:"2026-04-28",commodity:"Cocoa",prod_net:-17054,prod_chg:3227,mm_net:-19885,mm_chg:-3499,oi:237661},
+  {date:"2026-04-28",commodity:"Cotton",prod_net:-128133,prod_chg:-828,mm_net:38355,mm_chg:3891,oi:459650}
 ];
 
 // ── AUTH ─────────────────────────────────────────────────────
@@ -805,4 +829,3 @@ function chartOpts(){
 </script>
 </body>
 </html>
-
