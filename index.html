@@ -156,6 +156,31 @@
 
   /* ── FOOTER ── */
   .footer { font-size: 11px; color: var(--muted); padding: 1rem 0 2rem; border-top: 1px solid var(--border); margin-top: .5rem; }
+
+  /* ── EXTREME SCANNER ── */
+  .scanner-row { display:grid; grid-template-columns:140px 1fr 90px 90px 90px 80px; gap:0; align-items:center; padding:.6rem .875rem; border-bottom:1px solid var(--border); transition:background .15s; }
+  .scanner-row:hover { background:var(--bg3); }
+  .scanner-row.header { background:var(--bg3); border-radius:var(--radius-sm) var(--radius-sm) 0 0; font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:600; padding:.5rem .875rem; border-bottom:1px solid var(--border2); }
+  .scanner-comm { font-size:13px; font-weight:500; color:var(--text); }
+  .scanner-bar-wrap { padding:0 12px; }
+  .scanner-bar-bg { height:6px; background:var(--bg3); border-radius:3px; position:relative; overflow:visible; }
+  .scanner-bar-fill { height:100%; border-radius:3px; position:absolute; top:0; transition:all .4s; }
+  .scanner-bar-mid { position:absolute; top:-3px; left:50%; width:1px; height:12px; background:var(--border2); }
+  .scanner-val { font-size:12px; font-weight:500; text-align:right; }
+  .scanner-pct { font-size:11px; color:var(--muted); text-align:right; }
+  .scanner-oi { font-size:11px; color:var(--muted); text-align:right; }
+  .scanner-score { display:flex; align-items:center; justify-content:flex-end; gap:5px; }
+  .trigger-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .score-none { background:var(--bg3); }
+  .scan-group-hdr { font-size:10px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; padding:.75rem .875rem .35rem; }
+  .scan-toggle { display:flex; gap:6px; margin-bottom:1rem; flex-wrap:wrap; }
+  .scan-btn { padding:4px 12px; border-radius:20px; border:1px solid var(--border2); background:transparent; color:var(--muted); font-size:12px; cursor:pointer; transition:all .15s; }
+  .scan-btn.on { background:var(--bg3); color:var(--text); border-color:var(--accent); }
+  .conviction-badge { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:500; }
+  .conv-high { background:rgba(239,68,68,.15); color:#ef4444; }
+  .conv-med  { background:rgba(245,158,11,.15); color:#f59e0b; }
+  .conv-low  { background:rgba(59,130,246,.12); color:#3b82f6; }
+  .conv-none { background:var(--bg3); color:var(--muted); }
 </style>
 </head>
 <body>
@@ -239,6 +264,7 @@
       <button class="tab" data-t="chg">Weekly change</button>
       <button class="tab" data-t="pct">Percentile rank</button>
       <button class="tab" data-t="signal">Calendar spread signal</button>
+      <button class="tab" data-t="scanner">Extremes scanner</button>
       <button class="tab" data-t="spread">MM spread view</button>
       <button class="tab" data-t="all">All commodities</button>
     </div>
@@ -323,6 +349,49 @@
     <div id="all-card" style="display:none">
       <div class="section-hdr" id="all-hdr">All commodities — latest week</div>
       <div class="spread-grid" id="all-grid"></div>
+    </div>
+
+    <!-- Extremes Scanner -->
+    <div id="scanner-card" style="display:none">
+      <div class="card" style="margin-bottom:1rem">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1rem">
+          <div>
+            <div class="card-title" style="margin-bottom:.25rem">Extremes scanner — all commodities</div>
+            <div style="font-size:12px;color:var(--muted)">Three triggers fire independently. Two or more on the same commodity = high conviction.</div>
+          </div>
+          <div class="scan-toggle">
+            <button class="scan-btn on" data-scan="mm" onclick="setScanView('mm',this)">MM positioning</button>
+            <button class="scan-btn" data-scan="prod" onclick="setScanView('prod',this)">Producer positioning</button>
+            <button class="scan-btn" data-scan="div" onclick="setScanView('div',this)">MM vs Producer divergence</button>
+          </div>
+        </div>
+        <!-- Trigger legend -->
+        <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:1.25rem;padding:.75rem;background:var(--bg3);border-radius:var(--radius-sm)">
+          <div style="display:flex;align-items:center;gap:6px"><div class="trigger-dot" style="background:#ef4444"></div><strong style="color:var(--text)">T1</strong> — % of OI extreme (MM &gt;±15% or Prod &gt;±20%)</div>
+          <div style="display:flex;align-items:center;gap:6px"><div class="trigger-dot" style="background:#f59e0b"></div><strong style="color:var(--text)">T2</strong> — Percentile extreme (&gt;90th or &lt;10th of own history)</div>
+          <div style="display:flex;align-items:center;gap:6px"><div class="trigger-dot" style="background:#a78bfa"></div><strong style="color:var(--text)">T3</strong> — 4-week momentum extreme (top/bottom 20% of all observed changes)</div>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+            <span class="conviction-badge conv-high">●● High</span>
+            <span class="conviction-badge conv-med">● Medium</span>
+            <span class="conviction-badge conv-none">— None</span>
+          </div>
+        </div>
+        <!-- Table header -->
+        <div class="scanner-row header">
+          <div>Commodity</div>
+          <div style="padding:0 12px" id="scan-bar-hdr">MM net (bar = % of OI)</div>
+          <div style="text-align:right" id="scan-val-hdr">MM net</div>
+          <div style="text-align:right">% of OI</div>
+          <div style="text-align:right" id="scan-pct-hdr">Pct rank</div>
+          <div style="text-align:right">Triggers</div>
+        </div>
+        <div id="scanner-rows"></div>
+      </div>
+      <!-- Conviction summary -->
+      <div class="card">
+        <div class="card-title">High conviction extremes this week</div>
+        <div id="conviction-summary"></div>
+      </div>
     </div>
 
     <div class="footer">
@@ -552,9 +621,13 @@ const pcol=p=>p<25?'#ef4444':p>75?'#22c55e':'#3b82f6';
 function rows(c){return RAW.filter(r=>r.commodity===c).sort((a,b)=>a.date.localeCompare(b.date));}
 function rank(arr,v){return arr.length<2?50:Math.round(arr.filter(x=>x<v).length/arr.length*100);}
 function pctOI(r){return r.oi>0?Math.round(r.mm_net/r.oi*100*10)/10:0;}
+function prodPctOI(r){return r.oi>0?Math.round(r.prod_net/r.oi*100*10)/10:0;}
+function zscore(arr,v){if(arr.length<3)return 0;const m=arr.reduce((a,b)=>a+b,0)/arr.length;const sd=Math.sqrt(arr.reduce((a,b)=>a+(b-m)**2,0)/arr.length);return sd===0?0:Math.round((v-m)/sd*10)/10;}
+
+const ALL_COMMS=["Corn","Soybeans","Wheat","KC Wheat","MN Wheat","Soybean Oil","Soybean Meal","Canola","Rough Rice","Coffee","Sugar","Cocoa","Cotton"];
 
 // ── STATE ─────────────────────────────────────────────────────
-let chart=null, spreadChart=null, prodMomChart=null, divChart=null, tab='net';
+let chart=null, spreadChart=null, prodMomChart=null, divChart=null, tab='net', scanView='mm';
 
 // ── INIT ──────────────────────────────────────────────────────
 function init(){
@@ -585,13 +658,220 @@ function render(){
   const sc=document.getElementById('spread-card');
   const ac=document.getElementById('all-card');
   const sig=document.getElementById('signal-card');
-  [cc,pc,sc,ac,sig].forEach(el=>el.style.display='none');
+  const scanc=document.getElementById('scanner-card');
+  [cc,pc,sc,ac,sig,scanc].forEach(el=>el.style.display='none');
 
   if(tab==='net'||tab==='chg'){cc.style.display='block';buildMainChart(data,tab);}
   else if(tab==='pct'){pc.style.display='block';renderPct(data);}
   else if(tab==='signal'){sig.style.display='block';renderSignal(data,comm);}
+  else if(tab==='scanner'){scanc.style.display='block';renderScanner();}
   else if(tab==='spread'){sc.style.display='block';renderSpread();}
   else if(tab==='all'){ac.style.display='block';renderAll();}
+}
+
+// ── SCANNER HELPERS ───────────────────────────────────────────
+function setScanView(v, btn){
+  scanView=v;
+  document.querySelectorAll('.scan-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderScanner();
+}
+
+function computeCommScores(){
+  // Build all 4-week momentum values across all comms for T3 threshold
+  const all4wkMM=[], all4wkProd=[], all4wkDiv=[];
+  ALL_COMMS.forEach(c=>{
+    const d=rows(c);
+    for(let i=4;i<d.length;i++){
+      all4wkMM.push(d[i].mm_net - d[i-4].mm_net);
+      all4wkProd.push(d[i].prod_net - d[i-4].prod_net);
+      all4wkDiv.push((d[i].mm_net-d[i].prod_net)-(d[i-4].mm_net-d[i-4].prod_net));
+    }
+  });
+  all4wkMM.sort((a,b)=>a-b);
+  all4wkProd.sort((a,b)=>a-b);
+  all4wkDiv.sort((a,b)=>a-b);
+  const p20MM_lo=all4wkMM[Math.floor(all4wkMM.length*.2)]??0;
+  const p80MM_hi=all4wkMM[Math.floor(all4wkMM.length*.8)]??0;
+  const p20Pr_lo=all4wkProd[Math.floor(all4wkProd.length*.2)]??0;
+  const p80Pr_hi=all4wkProd[Math.floor(all4wkProd.length*.8)]??0;
+  const p20Dv_lo=all4wkDiv[Math.floor(all4wkDiv.length*.2)]??0;
+  const p80Dv_hi=all4wkDiv[Math.floor(all4wkDiv.length*.8)]??0;
+
+  return ALL_COMMS.map(c=>{
+    const d=rows(c);
+    if(!d.length) return null;
+    const last=d[d.length-1];
+    const w4=d.length>=5?d[d.length-5]:d[0];
+
+    const mmPOI=pctOI(last);
+    const prPOI=prodPctOI(last);
+    const mmPct=rank(d.map(r=>r.mm_net),last.mm_net);
+    const prPct=rank(d.map(r=>r.prod_net),last.prod_net);
+    const divNow=last.mm_net-last.prod_net;
+    const divHist=d.map(r=>r.mm_net-r.prod_net);
+    const divPct=rank(divHist,divNow);
+    const mm4wk=last.mm_net-w4.mm_net;
+    const pr4wk=last.prod_net-w4.prod_net;
+    const div4wk=divNow-(w4.mm_net-w4.prod_net);
+    const mmZ=zscore(d.map(r=>r.mm_net),last.mm_net);
+    const prZ=zscore(d.map(r=>r.prod_net),last.prod_net);
+
+    // ── Trigger evaluation ──
+    // T1 — % of OI threshold
+    const t1mm = Math.abs(mmPOI)>=15;
+    const t1pr = Math.abs(prPOI)>=20;
+    const t1div= Math.abs(mmPOI)>=15 && Math.abs(prPOI)>=20;
+    // T2 — percentile extreme (>90th or <10th)
+    const t2mm = mmPct>=90||mmPct<=10;
+    const t2pr = prPct>=90||prPct<=10;
+    const t2div= divPct>=90||divPct<=10;
+    // T3 — 4-week momentum extreme
+    const t3mm = mm4wk<=p20MM_lo||mm4wk>=p80MM_hi;
+    const t3pr = pr4wk<=p20Pr_lo||pr4wk>=p80Pr_hi;
+    const t3div= div4wk<=p20Dv_lo||div4wk>=p80Dv_hi;
+
+    const mmScore=[t1mm,t2mm,t3mm].filter(Boolean).length;
+    const prScore=[t1pr,t2pr,t3pr].filter(Boolean).length;
+    const divScore=[t1div,t2div,t3div].filter(Boolean).length;
+
+    // Direction: positive = extreme long MM / extreme prod cover; negative = extreme short
+    const mmDir=last.mm_net>0?1:-1;
+    const prDir=last.prod_net>0?1:-1;
+
+    return {c,last,mmPOI,prPOI,mmPct,prPct,divPct,mm4wk,pr4wk,div4wk,mmZ,prZ,
+      divNow,t1mm,t2mm,t3mm,t1pr,t2pr,t3pr,t1div,t2div,t3div,
+      mmScore,prScore,divScore,mmDir,prDir,
+      triggers:{mm:[t1mm,t2mm,t3mm],prod:[t1pr,t2pr,t3pr],div:[t1div,t2div,t3div]}};
+  }).filter(Boolean);
+}
+
+function renderScanner(){
+  const scores=computeCommScores();
+  const v=scanView;
+
+  // Sort by conviction score descending
+  const getScore=s=>v==='mm'?s.mmScore:v==='prod'?s.prScore:s.divScore;
+  scores.sort((a,b)=>getScore(b)-getScore(a));
+
+  // Update header labels
+  if(v==='mm'){
+    document.getElementById('scan-bar-hdr').textContent='MM net (bar = % of OI, midline = 0)';
+    document.getElementById('scan-val-hdr').textContent='MM net';
+    document.getElementById('scan-pct-hdr').textContent='Hist. pct rank';
+  } else if(v==='prod'){
+    document.getElementById('scan-bar-hdr').textContent='Producer net (bar = % of OI, midline = 0)';
+    document.getElementById('scan-val-hdr').textContent='Producer net';
+    document.getElementById('scan-pct-hdr').textContent='Hist. pct rank';
+  } else {
+    document.getElementById('scan-bar-hdr').textContent='MM−Producer divergence (bar = percentile)';
+    document.getElementById('scan-val-hdr').textContent='Divergence';
+    document.getElementById('scan-pct-hdr').textContent='Div. pct rank';
+  }
+
+  // Build rows
+  const rowsHTML=scores.map(s=>{
+    const score=getScore(s);
+    const triggers=s.triggers[v==='mm'?'mm':v==='prod'?'prod':'div'];
+    const dotColors=['#ef4444','#f59e0b','#a78bfa'];
+
+    // Bar calculation
+    let barPct, barColor, valText, pctText, pctNum;
+    if(v==='mm'){
+      barPct=Math.min(Math.abs(s.mmPOI)/30*50,50); // max 30% OI maps to 50% bar half
+      barColor=s.last.mm_net>0?'#22c55e':'#ef4444';
+      valText=fmt(s.last.mm_net);
+      pctText=s.mmPct+'th';
+      pctNum=s.mmPct;
+    } else if(v==='prod'){
+      barPct=Math.min(Math.abs(s.prPOI)/40*50,50);
+      barColor=s.last.prod_net>0?'#22c55e':'#ef4444';
+      valText=fmt(s.last.prod_net);
+      pctText=s.prPct+'th';
+      pctNum=s.prPct;
+    } else {
+      barPct=s.divPct/2; // 0-100 percentile mapped to 0-50 bar half
+      barColor=s.divNow>0?'#22c55e':'#ef4444';
+      valText=fmt(s.divNow);
+      pctText=s.divPct+'th';
+      pctNum=s.divPct;
+    }
+
+    const isRight=v==='mm'?s.last.mm_net>0:v==='prod'?s.last.prod_net>0:s.divNow>0;
+    const barStyle=isRight
+      ?`left:50%;width:${barPct}%;background:${barColor};`
+      :`right:50%;width:${barPct}%;background:${barColor};`;
+
+    const convBadge=score>=2?'conv-high':score===1?'conv-med':'conv-none';
+    const convLabel=score>=2?'●● High':score===1?'● Medium':'— None';
+
+    const dotsHTML=triggers.map((t,i)=>
+      `<div class="trigger-dot" style="background:${t?dotColors[i]:'var(--bg3)'};${t?'':'border:1px solid var(--border2)'}"></div>`
+    ).join('');
+
+    const poiText=v==='mm'?`${s.mmPOI}% OI`:v==='prod'?`${s.prPOI}% OI`:``;
+    const momText=v==='mm'?`4wk: ${fmt(s.mm4wk)}`:v==='prod'?`4wk: ${fmt(s.pr4wk)}`:`4wk div: ${fmt(s.div4wk)}`;
+
+    return `<div class="scanner-row">
+      <div>
+        <div class="scanner-comm">${s.c}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${poiText}</div>
+      </div>
+      <div class="scanner-bar-wrap">
+        <div class="scanner-bar-bg">
+          <div class="scanner-bar-mid"></div>
+          <div class="scanner-bar-fill" style="${barStyle}"></div>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px">${momText}</div>
+      </div>
+      <div class="scanner-val" style="color:${isRight?'var(--green)':'var(--red)'}">${valText}</div>
+      <div class="scanner-pct" style="color:${pctNum>=90||pctNum<=10?'var(--amber)':'var(--muted)'}">${pctText}</div>
+      <div class="scanner-oi"><span class="conviction-badge ${convBadge}">${convLabel}</span></div>
+      <div class="scanner-score">${dotsHTML}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('scanner-rows').innerHTML=rowsHTML;
+
+  // Conviction summary — only show ≥2 triggers
+  const highConv=scores.filter(s=>getScore(s)>=2);
+  if(!highConv.length){
+    document.getElementById('conviction-summary').innerHTML=`<div style="color:var(--muted);font-size:13px;padding:.5rem 0">No high conviction extremes this week for the selected view. Try switching between MM, Producer, and Divergence views.</div>`;
+    return;
+  }
+
+  document.getElementById('conviction-summary').innerHTML=highConv.map(s=>{
+    const score=getScore(s);
+    const triggers=s.triggers[v==='mm'?'mm':v==='prod'?'prod':'div'];
+    const t1=triggers[0],t2=triggers[1],t3=triggers[2];
+    let direction,implication;
+    if(v==='mm'){
+      direction=s.last.mm_net>0?'extreme long':'extreme short';
+      implication=s.last.mm_net>0
+        ?`MM crowded long at ${s.mmPOI}% of OI (${s.mmPct}th pct). 4-week build: ${fmt(s.mm4wk)}. Crowded long — watch for unwind risk if momentum stalls.`
+        :` MM crowded short at ${s.mmPOI}% of OI (${s.mmPct}th pct). 4-week change: ${fmt(s.mm4wk)}. Potential short-covering rally if any bullish catalyst emerges.`;
+    } else if(v==='prod'){
+      direction=s.last.prod_net<0?'extreme short hedge':'unusually long';
+      implication=s.last.prod_net<0
+        ?`Producers at ${s.prPOI}% of OI short (${s.prPct}th pct). 4-week build: ${fmt(s.pr4wk)}. Heavy deferred selling — structurally bullish for nearby calendar spreads.`
+        :`Producers unusually long at ${s.prPOI}% of OI (${s.prPct}th pct). Rare positioning — may signal producer bullishness or physical inventory dynamics.`;
+    } else {
+      direction=s.divNow>0?'MM much longer than Producers':'Producers much longer than MM';
+      implication=`MM vs Producer divergence at ${s.divPct}th percentile (${fmt(s.divNow)} contracts). 4-week change: ${fmt(s.div4wk)}. ${s.divNow>0?'Classic bull spread setup — both sides pulling in opposite directions.':'Unusual — specs more bearish than hedgers.'}`;
+    }
+    const t1fired=t1?`<span style="color:#ef4444">T1 (% OI)</span>`:`<span style="color:var(--muted)">T1</span>`;
+    const t2fired=t2?`<span style="color:#f59e0b">T2 (percentile)</span>`:`<span style="color:var(--muted)">T2</span>`;
+    const t3fired=t3?`<span style="color:#a78bfa">T3 (momentum)</span>`:`<span style="color:var(--muted)">T3</span>`;
+    return `<div style="padding:.875rem;background:var(--bg3);border-radius:var(--radius-sm);margin-bottom:.75rem">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:.5rem;flex-wrap:wrap">
+        <div style="font-size:14px;font-weight:600;color:var(--text)">${s.c}</div>
+        <span class="conviction-badge conv-high">●● High conviction</span>
+        <div style="font-size:12px;color:var(--muted)">${direction}</div>
+        <div style="margin-left:auto;display:flex;gap:6px;font-size:11px">${t1fired} &nbsp; ${t2fired} &nbsp; ${t3fired}</div>
+      </div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6">${implication}</div>
+    </div>`;
+  }).join('');
 }
 
 // ── CALENDAR SPREAD SIGNAL ────────────────────────────────────
