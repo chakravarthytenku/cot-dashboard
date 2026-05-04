@@ -1,1 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COT Positioning Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg2: #181c27;
+    --bg3: #1e2333;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #e8eaf0;
+    --muted: #8892a4;
+    --accent: #3b82f6;
+    --green: #22c55e;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --prod: #3b82f6;
+    --mm: #22c55e;
+    --prod-fade: rgba(59,130,246,0.12);
+    --mm-fade: rgba(34,197,94,0.12);
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 14px; min-height: 100vh; }
+
+  /* ── LOGIN SCREEN ── */
+  #login-screen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; background: var(--bg);
+    background-image: radial-gradient(ellipse at 20% 50%, rgba(59,130,246,0.06) 0%, transparent 60%),
+                      radial-gradient(ellipse at 80% 20%, rgba(34,197,94,0.05) 0%, transparent 50%);
+  }
+  .login-box {
+    width: 360px; background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: 16px; padding: 2.5rem 2rem;
+  }
+  .login-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 2rem; }
+  .login-logo-icon {
+    width: 36px; height: 36px; background: var(--accent); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+  }
+  .login-logo-text { font-size: 15px; font-weight: 600; color: var(--text); }
+  .login-logo-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .login-box h2 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+  .login-box p { font-size: 13px; color: var(--muted); margin-bottom: 1.75rem; }
+  .field { margin-bottom: 1rem; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.03em; }
+  .field input {
+    width: 100%; padding: 10px 14px; background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); color: var(--text); font-size: 14px; outline: none;
+    transition: border-color .2s;
+  }
+  .field input:focus { border-color: var(--accent); }
+  .login-btn {
+    width: 100%; padding: 11px; background: var(--accent); color: #fff; border: none;
+    border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; cursor: pointer;
+    margin-top: .5rem; transition: opacity .2s;
+  }
+  .login-btn:hover { opacity: .9; }
+  .login-err { font-size: 12px; color: var(--red); margin-top: .75rem; display: none; text-align: center; }
+
+  /* ── APP SHELL ── */
+  #app { display: none; }
+  .topbar {
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    padding: 0 1.5rem; height: 56px; display: flex; align-items: center;
+    justify-content: space-between; position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .topbar-icon {
+    width: 30px; height: 30px; background: var(--accent); border-radius: 7px;
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+  }
+  .topbar-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .topbar-sub { font-size: 11px; color: var(--muted); }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+  .badge { font-size: 11px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 20px; padding: 3px 10px; color: var(--muted); }
+  .logout-btn { font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; }
+  .logout-btn:hover { color: var(--text); }
+
+  .main { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+
+  /* ── CONTROLS ── */
+  .controls-bar {
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    margin-bottom: 1.25rem;
+  }
+  select {
+    padding: 7px 12px; background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); color: var(--text); font-size: 13px; cursor: pointer; outline: none;
+  }
+  select:focus { border-color: var(--accent); }
+  .tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .tab {
+    padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border2);
+    background: transparent; color: var(--muted); font-size: 12px; cursor: pointer;
+    transition: all .15s;
+  }
+  .tab:hover { border-color: var(--border2); color: var(--text); }
+  .tab.on { background: var(--bg3); color: var(--text); border-color: var(--accent); font-weight: 500; }
+
+  /* ── METRICS ── */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 1.25rem; }
+  .metric {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: .875rem 1.125rem;
+  }
+  .metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+  .metric-val { font-size: 22px; font-weight: 600; line-height: 1; }
+  .metric-sub { font-size: 11px; color: var(--muted); margin-top: 5px; }
+  .g { color: var(--green); }
+  .r { color: var(--red); }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1.25rem;
+  }
+  .card-title { font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: .05em; }
+  .legend { display: flex; gap: 18px; margin-bottom: 12px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+  .li { display: flex; align-items: center; gap: 6px; }
+  .ld { width: 14px; height: 3px; border-radius: 2px; }
+
+  /* ── PERCENTILE ── */
+  .prow { margin-bottom: 1.1rem; }
+  .plbl { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .plbl strong { color: var(--text); font-weight: 500; }
+  .ptr { height: 8px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+  .pfil { height: 100%; border-radius: 4px; transition: width .6s ease; }
+
+  /* ── SPREAD VIEW ── */
+  .spread-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+  .spread-card {
+    background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: .875rem 1rem;
+  }
+  .spread-name { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .spread-row { display: flex; gap: 10px; }
+  .spread-item { flex: 1; }
+  .spread-lbl { font-size: 10px; color: var(--muted); margin-bottom: 2px; }
+  .spread-val { font-size: 14px; font-weight: 600; }
+  .spread-chg { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .oi-line { font-size: 10px; color: var(--muted); margin-top: 6px; }
+
+  /* ── SECTION HEADER ── */
+  .section-hdr {
+    font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase;
+    letter-spacing: .08em; margin: 1.5rem 0 .75rem; padding-bottom: .5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── FOOTER ── */
+  .footer { font-size: 11px; color: var(--muted); padding: 1rem 0 2rem; border-top: 1px solid var(--border); margin-top: .5rem; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">📊</div>
+      <div>
+        <div class="login-logo-text">COT Dashboard</div>
+        <div class="login-logo-sub">Positioning Analysis</div>
+      </div>
+    </div>
+    <h2>Sign in</h2>
+    <p>Enter your credentials to access the dashboard.</p>
+    <div class="field">
+      <label>USERNAME</label>
+      <input type="text" id="usr" placeholder="username" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>PASSWORD</label>
+      <input type="password" id="pwd" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign in →</button>
+    <div class="login-err" id="login-err">Incorrect credentials. Please try again.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-icon">📊</div>
+      <div>
+        <div class="topbar-title">COT Positioning Dashboard</div>
+        <div class="topbar-sub">Disaggregated Futures &amp; Options · RJ O'Brien / CFTC</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="badge" id="date-badge">Nov 2025 – Apr 2026</div>
+      <button class="logout-btn" onclick="doLogout()">Sign out</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="controls-bar">
+      <select id="comm">
+        <option value="Corn">Corn</option>
+        <option value="Soybeans">Soybeans</option>
+        <option value="Wheat">Wheat (SRW)</option>
+        <option value="KC Wheat">KC Wheat (HRW)</option>
+        <option value="MN Wheat">MN Wheat (Spring)</option>
+        <option value="Soybean Oil">Soybean Oil</option>
+        <option value="Soybean Meal">Soybean Meal</option>
+        <option value="Canola">Canola</option>
+        <option value="Rough Rice">Rough Rice</option>
+      </select>
+      <select id="spread-b" style="display:none">
+        <option value="Soybeans">vs Soybeans</option>
+        <option value="Corn">vs Corn</option>
+        <option value="Wheat">vs Wheat (SRW)</option>
+        <option value="Soybean Oil">vs Soybean Oil</option>
+        <option value="Soybean Meal">vs Soybean Meal</option>
+        <option value="Canola">vs Canola</option>
+      </select>
+    </div>
+
+    <div class="tabs">
+      <button class="tab on" data-t="net">Net positioning</button>
+      <button class="tab" data-t="chg">Weekly change</button>
+      <button class="tab" data-t="pct">Percentile rank</button>
+      <button class="tab" data-t="signal">Calendar spread signal</button>
+      <button class="tab" data-t="spread">MM spread view</button>
+      <button class="tab" data-t="all">All commodities</button>
+    </div>
+
+    <div class="metrics" id="metrics"></div>
+
+    <!-- Net / WoW chart -->
+    <div class="card" id="chart-card">
+      <div class="card-title" id="chart-title">Net positioning (contracts)</div>
+      <div class="legend" id="legend"></div>
+      <div style="position:relative;width:100%;height:300px">
+        <canvas id="main-chart" role="img" aria-label="COT positioning chart"></canvas>
+      </div>
+    </div>
+
+    <!-- Percentile -->
+    <div class="card" id="pct-card" style="display:none">
+      <div class="card-title">Historical percentile rank — within available data window</div>
+      <div id="pct-bars"></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:.5rem">
+        🟢 &gt;75th = historically long &nbsp;|&nbsp; 🟠 &lt;25th = historically short &nbsp;|&nbsp; 🔵 25–75th = neutral
+      </div>
+    </div>
+
+    <!-- Calendar Spread Signal -->
+    <div id="signal-card" style="display:none">
+      <!-- Traffic light -->
+      <div class="card">
+        <div class="card-title">Calendar spread signal — <span id="signal-comm-name">Soybean Meal</span></div>
+        <div id="signal-traffic" style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1.25rem;flex-wrap:wrap">
+          <div id="signal-light" style="width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0"></div>
+          <div>
+            <div id="signal-label" style="font-size:20px;font-weight:600;margin-bottom:4px"></div>
+            <div id="signal-desc" style="font-size:13px;color:var(--muted);max-width:520px;line-height:1.5"></div>
+          </div>
+        </div>
+        <div id="signal-metrics" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px"></div>
+      </div>
+      <!-- Producer momentum chart -->
+      <div class="card">
+        <div class="card-title">Producer short build — 4-week rate of change</div>
+        <div class="legend"><div class="li"><div class="ld" style="background:#ef4444"></div>Producer net (bars = WoW change)</div><div class="li"><div class="ld" style="background:#f59e0b;border-top:2px dashed #f59e0b;height:0"></div>4-week rolling change</div></div>
+        <div style="position:relative;width:100%;height:260px">
+          <canvas id="prod-mom-chart" role="img" aria-label="Producer short momentum chart"></canvas>
+        </div>
+      </div>
+      <!-- MM vs Producer divergence chart -->
+      <div class="card">
+        <div class="card-title">MM vs Producer divergence — net positions over time</div>
+        <div class="legend"><div class="li"><div class="ld" style="background:#3b82f6"></div>Producer net</div><div class="li"><div class="ld" style="background:#22c55e"></div>MM net</div><div class="li"><div class="ld" style="background:#f59e0b;border-top:2px dashed #f59e0b;height:0"></div>Divergence (MM − Producer)</div></div>
+        <div style="position:relative;width:100%;height:280px">
+          <canvas id="div-chart" role="img" aria-label="MM vs Producer divergence chart"></canvas>
+        </div>
+      </div>
+      <!-- Interpretation guide -->
+      <div class="card" style="font-size:13px;color:var(--muted);line-height:1.8">
+        <div class="card-title">How to read this</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem">
+          <div><div style="color:var(--green);font-weight:500;margin-bottom:4px">🟢 Bull spread signal</div>Producers aggressively adding shorts (selling deferred). Rate of change accelerating negative. MM simultaneously going longer. Divergence widening. → Nearby premium over deferred likely to expand.</div>
+          <div><div style="color:var(--amber);font-weight:500;margin-bottom:4px">🟡 Neutral / watch</div>Producer short build slowing or stalling. MM not adding aggressively. Divergence flat. → Spread may consolidate. Wait for resumption of producer hedging or MM conviction.</div>
+          <div><div style="color:var(--red);font-weight:500;margin-bottom:4px">🔴 Spread peak warning</div>Producer covering shorts (buying back). MM cutting longs. Divergence narrowing. → Structural support for bull spread is fading. Risk of spread reversal increasing.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Spread view -->
+    <div id="spread-card" style="display:none">
+      <div class="card">
+        <div class="card-title" id="spread-chart-title">MM net divergence — Corn vs Soybeans</div>
+        <div class="legend" id="spread-legend"></div>
+        <div style="position:relative;width:100%;height:280px">
+          <canvas id="spread-chart" role="img" aria-label="Spread positioning chart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Spread trading signals — latest week</div>
+        <div id="spread-signals"></div>
+      </div>
+    </div>
+
+    <!-- All commodities -->
+    <div id="all-card" style="display:none">
+      <div class="section-hdr" id="all-hdr">All commodities — latest week</div>
+      <div class="spread-grid" id="all-grid"></div>
+    </div>
+
+    <div class="footer">
+      Source: RJ O'Brien &amp; Associates / CFTC Disaggregated Futures &amp; Options Combined Report &nbsp;·&nbsp;
+      Data: <span id="data-range"></span> &nbsp;·&nbsp;
+      <span id="week-count"></span> weeks
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CREDENTIALS (change these!) ──────────────────────────────
+const USERS = {
+  'trader':  'cot2026',
+  'admin':   'admin123'
+};
+// ────────────────────────────────────────────────────────────
+
+const RAW=[
+  {date:"2025-11-10",commodity:"Corn",prod_net:-240382,prod_chg:30577,mm_net:-10872,mm_chg:-48999,oi:1841219},
+  {date:"2025-11-10",commodity:"Wheat",prod_net:-7169,prod_chg:1255,mm_net:-53746,mm_chg:-5055,oi:456613},
+  {date:"2025-11-10",commodity:"Soybeans",prod_net:-336206,prod_chg:2357,mm_net:214289,mm_chg:-15336,oi:1189294},
+  {date:"2025-11-10",commodity:"KC Wheat",prod_net:-50938,prod_chg:3377,mm_net:-22064,mm_chg:-2125,oi:278932},
+  {date:"2025-11-10",commodity:"MN Wheat",prod_net:19091,prod_chg:-2471,mm_net:-21775,mm_chg:4503,oi:70550},
+  {date:"2025-11-10",commodity:"Soybean Oil",prod_net:-79529,prod_chg:27208,mm_net:-18797,mm_chg:-10686,oi:771211},
+  {date:"2025-11-10",commodity:"Soybean Meal",prod_net:-164062,prod_chg:8584,mm_net:63508,mm_chg:4197,oi:655968},
+  {date:"2025-11-10",commodity:"Canola",prod_net:32765,prod_chg:-414,mm_net:-17292,mm_chg:1463,oi:281855},
+  {date:"2025-11-10",commodity:"Rough Rice",prod_net:4916,prod_chg:201,mm_net:-6929,mm_chg:153,oi:14342},
+  {date:"2025-11-25",commodity:"Corn",prod_net:-272329,prod_chg:-31947,mm_net:23270,mm_chg:34142,oi:1838317},
+  {date:"2025-11-25",commodity:"Wheat",prod_net:-21795,prod_chg:-14626,mm_net:-43841,mm_chg:9905,oi:462206},
+  {date:"2025-11-25",commodity:"Soybeans",prod_net:-333052,prod_chg:3154,mm_net:215426,mm_chg:1137,oi:1194302},
+  {date:"2025-11-25",commodity:"KC Wheat",prod_net:-55415,prod_chg:-4477,mm_net:-17911,mm_chg:4153,oi:288004},
+  {date:"2025-11-25",commodity:"MN Wheat",prod_net:16617,prod_chg:-2474,mm_net:-19889,mm_chg:1886,oi:68304},
+  {date:"2025-11-25",commodity:"Soybean Oil",prod_net:-108470,prod_chg:-28941,mm_net:-2684,mm_chg:16113,oi:768564},
+  {date:"2025-11-25",commodity:"Soybean Meal",prod_net:-160059,prod_chg:4003,mm_net:57662,mm_chg:-5846,oi:650587},
+  {date:"2025-11-25",commodity:"Canola",prod_net:22718,prod_chg:-10047,mm_net:-6422,mm_chg:10870,oi:298680},
+  {date:"2025-11-25",commodity:"Rough Rice",prod_net:4864,prod_chg:-52,mm_net:-7166,mm_chg:-237,oi:14962},
+  {date:"2025-12-02",commodity:"Corn",prod_net:-252216,prod_chg:20113,mm_net:9718,mm_chg:-13552,oi:1860019},
+  {date:"2025-12-02",commodity:"Wheat",prod_net:-16988,prod_chg:4807,mm_net:-46069,mm_chg:-2228,oi:482671},
+  {date:"2025-12-02",commodity:"Soybeans",prod_net:-301929,prod_chg:31123,mm_net:180338,mm_chg:-35088,oi:1192964},
+  {date:"2025-12-02",commodity:"KC Wheat",prod_net:-57136,prod_chg:-1721,mm_net:-17011,mm_chg:900,oi:288285},
+  {date:"2025-12-02",commodity:"MN Wheat",prod_net:16614,prod_chg:-3,mm_net:-19190,mm_chg:699,oi:68859},
+  {date:"2025-12-02",commodity:"Soybean Oil",prod_net:-97689,prod_chg:10781,mm_net:-7636,mm_chg:-4952,oi:737824},
+  {date:"2025-12-02",commodity:"Soybean Meal",prod_net:-136328,prod_chg:23731,mm_net:28265,mm_chg:-29397,oi:646372},
+  {date:"2025-12-02",commodity:"Canola",prod_net:57128,prod_chg:34410,mm_net:-39589,mm_chg:-33167,oi:306627},
+  {date:"2025-12-02",commodity:"Rough Rice",prod_net:4657,prod_chg:-207,mm_net:-7192,mm_chg:-26,oi:15580},
+  {date:"2025-12-09",commodity:"Corn",prod_net:-192961,prod_chg:59255,mm_net:-52672,mm_chg:-62390,oi:1916455},
+  {date:"2025-12-09",commodity:"Wheat",prod_net:-6596,prod_chg:10392,mm_net:-66918,mm_chg:-20849,oi:541890},
+  {date:"2025-12-09",commodity:"Soybeans",prod_net:-277293,prod_chg:24636,mm_net:147778,mm_chg:-32560,oi:1161576},
+  {date:"2025-12-09",commodity:"KC Wheat",prod_net:-48943,prod_chg:8193,mm_net:-25713,mm_chg:-8702,oi:305866},
+  {date:"2025-12-09",commodity:"MN Wheat",prod_net:16505,prod_chg:-109,mm_net:-20341,mm_chg:-1151,oi:70236},
+  {date:"2025-12-09",commodity:"Soybean Oil",prod_net:-49279,prod_chg:48410,mm_net:-41040,mm_chg:-33404,oi:749039},
+  {date:"2025-12-09",commodity:"Soybean Meal",prod_net:-118009,prod_chg:18319,mm_net:6220,mm_chg:-22045,oi:635524},
+  {date:"2025-12-09",commodity:"Canola",prod_net:74824,prod_chg:17696,mm_net:-68966,mm_chg:-29377,oi:295130},
+  {date:"2025-12-09",commodity:"Rough Rice",prod_net:5026,prod_chg:369,mm_net:-7038,mm_chg:154,oi:15533},
+  {date:"2025-12-16",commodity:"Corn",prod_net:-233878,prod_chg:-40917,mm_net:2759,mm_chg:55431,oi:1938042},
+  {date:"2025-12-16",commodity:"Wheat",prod_net:13863,prod_chg:20459,mm_net:-91665,mm_chg:-24747,oi:557480},
+  {date:"2025-12-16",commodity:"Soybeans",prod_net:-247652,prod_chg:29641,mm_net:110403,mm_chg:-37375,oi:1116964},
+  {date:"2025-12-16",commodity:"KC Wheat",prod_net:-50102,prod_chg:-1159,mm_net:-24749,mm_chg:964,oi:315308},
+  {date:"2025-12-16",commodity:"MN Wheat",prod_net:14999,prod_chg:-1506,mm_net:-20186,mm_chg:155,oi:69598},
+  {date:"2025-12-16",commodity:"Soybean Oil",prod_net:-23569,prod_chg:25710,mm_net:-67118,mm_chg:-26078,oi:742127},
+  {date:"2025-12-16",commodity:"Soybean Meal",prod_net:-107843,prod_chg:10166,mm_net:-6633,mm_chg:-12853,oi:613388},
+  {date:"2025-12-16",commodity:"Canola",prod_net:89737,prod_chg:14913,mm_net:-91898,mm_chg:-22932,oi:286809},
+  {date:"2025-12-16",commodity:"Rough Rice",prod_net:5022,prod_chg:-4,mm_net:-6833,mm_chg:205,oi:14058},
+  {date:"2025-12-23",commodity:"Corn",prod_net:-223348,prod_chg:10530,mm_net:-23584,mm_chg:-26343,oi:1910488},
+  {date:"2025-12-23",commodity:"Wheat",prod_net:14250,prod_chg:387,mm_net:-94626,mm_chg:-2961,oi:544590},
+  {date:"2025-12-23",commodity:"Soybeans",prod_net:-229261,prod_chg:18391,mm_net:84562,mm_chg:-25841,oi:938577},
+  {date:"2025-12-23",commodity:"KC Wheat",prod_net:-55301,prod_chg:-5199,mm_net:-18319,mm_chg:6430,oi:306949},
+  {date:"2025-12-23",commodity:"MN Wheat",prod_net:12665,prod_chg:-2334,mm_net:-18985,mm_chg:1201,oi:68475},
+  {date:"2025-12-23",commodity:"Soybean Oil",prod_net:-29983,prod_chg:-6414,mm_net:-67314,mm_chg:-196,oi:689350},
+  {date:"2025-12-23",commodity:"Soybean Meal",prod_net:-102877,prod_chg:4966,mm_net:-10230,mm_chg:-3597,oi:545507},
+  {date:"2025-12-23",commodity:"Canola",prod_net:85553,prod_chg:-4184,mm_net:-92603,mm_chg:-705,oi:282341},
+  {date:"2025-12-23",commodity:"Rough Rice",prod_net:5112,prod_chg:90,mm_net:-6617,mm_chg:216,oi:14599},
+  {date:"2025-12-30",commodity:"Corn",prod_net:-177958,prod_chg:58837,mm_net:-81774,mm_chg:-65348,oi:2035735},
+  {date:"2025-12-30",commodity:"Wheat",prod_net:15648,prod_chg:-10289,mm_net:-106229,mm_chg:936,oi:576837},
+  {date:"2025-12-30",commodity:"Soybeans",prod_net:-166730,prod_chg:45159,mm_net:12961,mm_chg:-44756,oi:1018811},
+  {date:"2025-12-30",commodity:"KC Wheat",prod_net:-64664,prod_chg:-5146,mm_net:-12781,mm_chg:2874,oi:316894},
+  {date:"2025-12-30",commodity:"MN Wheat",prod_net:13727,prod_chg:-5023,mm_net:-20502,mm_chg:-698,oi:73153},
+  {date:"2025-12-30",commodity:"Soybean Oil",prod_net:-46918,prod_chg:-11778,mm_net:-53019,mm_chg:13549,oi:731473},
+  {date:"2025-12-30",commodity:"Soybean Meal",prod_net:-109139,prod_chg:-14062,mm_net:-17140,mm_chg:3604,oi:581407},
+  {date:"2025-12-30",commodity:"Canola",prod_net:91247,prod_chg:5205,mm_net:-81749,mm_chg:14382,oi:276695},
+  {date:"2025-12-30",commodity:"Rough Rice",prod_net:4024,prod_chg:-507,mm_net:-5563,mm_chg:530,oi:13656},
+  {date:"2026-01-13",commodity:"Corn",prod_net:-169961,prod_chg:7997,mm_net:-81324,mm_chg:450,oi:2088297},
+  {date:"2026-01-13",commodity:"Wheat",prod_net:18516,prod_chg:2868,mm_net:-110700,mm_chg:-4471,oi:584981},
+  {date:"2026-01-13",commodity:"Soybeans",prod_net:-154473,prod_chg:12257,mm_net:10060,mm_chg:-2901,oi:1038385},
+  {date:"2026-01-13",commodity:"KC Wheat",prod_net:-58958,prod_chg:5706,mm_net:-13018,mm_chg:-237,oi:325078},
+  {date:"2026-01-13",commodity:"MN Wheat",prod_net:15091,prod_chg:1364,mm_net:-21898,mm_chg:-1396,oi:74649},
+  {date:"2026-01-13",commodity:"Soybean Oil",prod_net:-61072,prod_chg:-14154,mm_net:-25269,mm_chg:27750,oi:749677},
+  {date:"2026-01-13",commodity:"Soybean Meal",prod_net:-92550,prod_chg:16589,mm_net:-38198,mm_chg:-21058,oi:599203},
+  {date:"2026-01-13",commodity:"Canola",prod_net:90402,prod_chg:-845,mm_net:-71280,mm_chg:10469,oi:300661},
+  {date:"2026-01-13",commodity:"Rough Rice",prod_net:3989,prod_chg:-35,mm_net:-5462,mm_chg:101,oi:13603},
+  {date:"2026-01-20",commodity:"Corn",prod_net:-187342,prod_chg:-17381,mm_net:-72050,mm_chg:9274,oi:2092648},
+  {date:"2026-01-20",commodity:"Wheat",prod_net:12004,prod_chg:-6512,mm_net:-94743,mm_chg:15957,oi:597251},
+  {date:"2026-01-20",commodity:"Soybeans",prod_net:-158101,prod_chg:-3628,mm_net:17321,mm_chg:7261,oi:1047723},
+  {date:"2026-01-20",commodity:"KC Wheat",prod_net:-63717,prod_chg:-4759,mm_net:-10329,mm_chg:2689,oi:330399},
+  {date:"2026-01-20",commodity:"MN Wheat",prod_net:14511,prod_chg:-580,mm_net:-21997,mm_chg:-99,oi:76038},
+  {date:"2026-01-20",commodity:"Soybean Oil",prod_net:-94073,prod_chg:-33001,mm_net:13335,mm_chg:38604,oi:764733},
+  {date:"2026-01-20",commodity:"Soybean Meal",prod_net:-105134,prod_chg:-12584,mm_net:-31797,mm_chg:6401,oi:600273},
+  {date:"2026-01-20",commodity:"Canola",prod_net:76306,prod_chg:-14096,mm_net:-52858,mm_chg:18422,oi:302891},
+  {date:"2026-01-20",commodity:"Rough Rice",prod_net:3350,prod_chg:-639,mm_net:-4794,mm_chg:668,oi:13134},
+  {date:"2026-01-27",commodity:"Corn",prod_net:-188114,prod_chg:-772,mm_net:-68786,mm_chg:3264,oi:2142087},
+  {date:"2026-01-27",commodity:"Wheat",prod_net:5895,prod_chg:-6109,mm_net:-81755,mm_chg:12988,oi:612046},
+  {date:"2026-01-27",commodity:"Soybeans",prod_net:-160645,prod_chg:-2544,mm_net:28832,mm_chg:11511,oi:1084818},
+  {date:"2026-01-27",commodity:"KC Wheat",prod_net:-65749,prod_chg:-2032,mm_net:-8844,mm_chg:1485,oi:334508},
+  {date:"2026-01-27",commodity:"MN Wheat",prod_net:12900,prod_chg:-1611,mm_net:-20848,mm_chg:1149,oi:75979},
+  {date:"2026-01-27",commodity:"Soybean Oil",prod_net:-83328,prod_chg:10745,mm_net:9841,mm_chg:-3494,oi:778141},
+  {date:"2026-01-27",commodity:"Soybean Meal",prod_net:-116274,prod_chg:-11140,mm_net:-21737,mm_chg:10060,oi:613292},
+  {date:"2026-01-27",commodity:"Canola",prod_net:63139,prod_chg:-13167,mm_net:-42601,mm_chg:10257,oi:310967},
+  {date:"2026-01-27",commodity:"Rough Rice",prod_net:2822,prod_chg:-528,mm_net:-4048,mm_chg:746,oi:12959},
+  {date:"2026-02-10",commodity:"Corn",prod_net:-218424,prod_chg:-30310,mm_net:-48210,mm_chg:20576,oi:2158210},
+  {date:"2026-02-10",commodity:"Wheat",prod_net:3251,prod_chg:-2644,mm_net:-85655,mm_chg:-3900,oi:590543},
+  {date:"2026-02-10",commodity:"Soybeans",prod_net:-219941,prod_chg:-59296,mm_net:123148,mm_chg:94316,oi:1207201},
+  {date:"2026-02-10",commodity:"KC Wheat",prod_net:-54227,prod_chg:11522,mm_net:-19496,mm_chg:-10652,oi:315925},
+  {date:"2026-02-10",commodity:"MN Wheat",prod_net:12921,prod_chg:21,mm_net:-18991,mm_chg:1857,oi:73469},
+  {date:"2026-02-10",commodity:"Soybean Oil",prod_net:-116528,prod_chg:-33200,mm_net:33093,mm_chg:23252,oi:841432},
+  {date:"2026-02-10",commodity:"Soybean Meal",prod_net:-126588,prod_chg:-10314,mm_net:-14325,mm_chg:7412,oi:600880},
+  {date:"2026-02-10",commodity:"Canola",prod_net:26950,prod_chg:-36189,mm_net:145,mm_chg:42746,oi:322036},
+  {date:"2026-02-10",commodity:"Rough Rice",prod_net:2080,prod_chg:-742,mm_net:-2786,mm_chg:1262,oi:12915},
+  {date:"2026-02-17",commodity:"Corn",prod_net:-222508,prod_chg:-4084,mm_net:-27415,mm_chg:20795,oi:2203979},
+  {date:"2026-02-17",commodity:"Wheat",prod_net:-9124,prod_chg:-12375,mm_net:-68037,mm_chg:17618,oi:544127},
+  {date:"2026-02-17",commodity:"Soybeans",prod_net:-250401,prod_chg:-30460,mm_net:163611,mm_chg:40463,oi:1281116},
+  {date:"2026-02-17",commodity:"KC Wheat",prod_net:-64749,prod_chg:-10522,mm_net:-10609,mm_chg:8887,oi:329255},
+  {date:"2026-02-17",commodity:"MN Wheat",prod_net:13303,prod_chg:382,mm_net:-18724,mm_chg:267,oi:74472},
+  {date:"2026-02-17",commodity:"Soybean Oil",prod_net:-127225,prod_chg:-10697,mm_net:41819,mm_chg:8726,oi:864090},
+  {date:"2026-02-17",commodity:"Soybean Meal",prod_net:-139210,prod_chg:-12622,mm_net:-1762,mm_chg:12563,oi:598663},
+  {date:"2026-02-17",commodity:"Canola",prod_net:20849,prod_chg:-6101,mm_net:8392,mm_chg:8247,oi:323526},
+  {date:"2026-02-17",commodity:"Rough Rice",prod_net:2019,prod_chg:-61,mm_net:-2040,mm_chg:746,oi:12381},
+  {date:"2026-02-24",commodity:"Corn",prod_net:-259581,prod_chg:-37073,mm_net:-13867,mm_chg:13548,oi:1995866},
+  {date:"2026-02-24",commodity:"Wheat",prod_net:-56092,prod_chg:-46968,mm_net:-17297,mm_chg:50740,oi:516198},
+  {date:"2026-02-24",commodity:"Soybeans",prod_net:-261211,prod_chg:-10810,mm_net:184202,mm_chg:20591,oi:1190468},
+  {date:"2026-02-24",commodity:"KC Wheat",prod_net:-84014,prod_chg:-19265,mm_net:4204,mm_chg:14813,oi:326573},
+  {date:"2026-02-24",commodity:"MN Wheat",prod_net:4937,prod_chg:-8366,mm_net:-9872,mm_chg:8852,oi:69795},
+  {date:"2026-02-24",commodity:"Soybean Oil",prod_net:-148094,prod_chg:-20869,mm_net:63312,mm_chg:21493,oi:853616},
+  {date:"2026-02-24",commodity:"Soybean Meal",prod_net:-167865,prod_chg:-28655,mm_net:31695,mm_chg:33457,oi:556917},
+  {date:"2026-02-24",commodity:"Canola",prod_net:-6891,prod_chg:-27740,mm_net:28194,mm_chg:19802,oi:310667},
+  {date:"2026-02-24",commodity:"Rough Rice",prod_net:3423,prod_chg:1404,mm_net:-3723,mm_chg:-1683,oi:13427},
+  {date:"2026-03-17",commodity:"Corn",prod_net:-522116,prod_chg:-44702,mm_net:228804,mm_chg:35533,oi:2322043},
+  {date:"2026-03-17",commodity:"Wheat",prod_net:-51888,prod_chg:-2292,mm_net:-12702,mm_chg:9643,oi:580836},
+  {date:"2026-03-17",commodity:"Soybeans",prod_net:-278719,prod_chg:8881,mm_net:201997,mm_chg:-20110,oi:1286114},
+  {date:"2026-03-17",commodity:"KC Wheat",prod_net:-79855,prod_chg:-115,mm_net:10726,mm_chg:1301,oi:336331},
+  {date:"2026-03-17",commodity:"MN Wheat",prod_net:-19235,prod_chg:-929,mm_net:15286,mm_chg:-704,oi:72985},
+  {date:"2026-03-17",commodity:"Soybean Oil",prod_net:-200187,prod_chg:-18415,mm_net:122356,mm_chg:13518,oi:923568},
+  {date:"2026-03-17",commodity:"Soybean Meal",prod_net:-214770,prod_chg:-6397,mm_net:83893,mm_chg:3232,oi:605483},
+  {date:"2026-03-17",commodity:"Canola",prod_net:-98135,prod_chg:-16702,mm_net:113594,mm_chg:18442,oi:383094},
+  {date:"2026-03-17",commodity:"Rough Rice",prod_net:2341,prod_chg:-1005,mm_net:-2598,mm_chg:982,oi:11635},
+  {date:"2026-03-24",commodity:"Corn",prod_net:-567545,prod_chg:-45429,mm_net:284548,mm_chg:55744,oi:2395789},
+  {date:"2026-03-24",commodity:"Wheat",prod_net:-52782,prod_chg:-894,mm_net:-2234,mm_chg:10468,oi:595809},
+  {date:"2026-03-24",commodity:"Soybeans",prod_net:-271259,prod_chg:7460,mm_net:197904,mm_chg:-4093,oi:1255147},
+  {date:"2026-03-24",commodity:"KC Wheat",prod_net:-72176,prod_chg:7679,mm_net:9705,mm_chg:-1021,oi:341739},
+  {date:"2026-03-24",commodity:"MN Wheat",prod_net:-20961,prod_chg:-1726,mm_net:15958,mm_chg:672,oi:73184},
+  {date:"2026-03-24",commodity:"Soybean Oil",prod_net:-194418,prod_chg:5769,mm_net:122621,mm_chg:265,oi:935870},
+  {date:"2026-03-24",commodity:"Soybean Meal",prod_net:-247721,prod_chg:-32951,mm_net:107932,mm_chg:24039,oi:648304},
+  {date:"2026-03-24",commodity:"Canola",prod_net:-77186,prod_chg:20949,mm_net:100481,mm_chg:-13113,oi:385676},
+  {date:"2026-03-24",commodity:"Rough Rice",prod_net:2581,prod_chg:240,mm_net:-2808,mm_chg:-210,oi:12093},
+  {date:"2026-03-31",commodity:"Corn",prod_net:-533662,prod_chg:33883,mm_net:267974,mm_chg:-16574,oi:2367004},
+  {date:"2026-03-31",commodity:"Wheat",prod_net:-66636,prod_chg:-13854,mm_net:8641,mm_chg:10875,oi:593425},
+  {date:"2026-03-31",commodity:"Soybeans",prod_net:-280889,prod_chg:-9630,mm_net:213407,mm_chg:15503,oi:1239712},
+  {date:"2026-03-31",commodity:"KC Wheat",prod_net:-82988,prod_chg:-10812,mm_net:21517,mm_chg:11812,oi:331432},
+  {date:"2026-03-31",commodity:"MN Wheat",prod_net:-28229,prod_chg:-7268,mm_net:21156,mm_chg:5198,oi:80315},
+  {date:"2026-03-31",commodity:"Soybean Oil",prod_net:-210240,prod_chg:-15822,mm_net:135809,mm_chg:13188,oi:937512},
+  {date:"2026-03-31",commodity:"Soybean Meal",prod_net:-239980,prod_chg:7741,mm_net:99933,mm_chg:-7999,oi:659166},
+  {date:"2026-03-31",commodity:"Canola",prod_net:-85344,prod_chg:-8158,mm_net:107551,mm_chg:7070,oi:385856},
+  {date:"2026-03-31",commodity:"Rough Rice",prod_net:2315,prod_chg:-266,mm_net:-3172,mm_chg:-364,oi:12640},
+  {date:"2026-04-07",commodity:"Corn",prod_net:-487004,prod_chg:46658,mm_net:218632,mm_chg:-49342,oi:2350220},
+  {date:"2026-04-07",commodity:"Wheat",prod_net:-56114,prod_chg:10522,mm_net:-5633,mm_chg:-14274,oi:605755},
+  {date:"2026-04-07",commodity:"Soybeans",prod_net:-263928,prod_chg:16961,mm_net:189630,mm_chg:-23777,oi:1263287},
+  {date:"2026-04-07",commodity:"KC Wheat",prod_net:-72670,prod_chg:10318,mm_net:15608,mm_chg:-5909,oi:328956},
+  {date:"2026-04-07",commodity:"MN Wheat",prod_net:-28519,prod_chg:-290,mm_net:21361,mm_chg:205,oi:81572},
+  {date:"2026-04-07",commodity:"Soybean Oil",prod_net:-223778,prod_chg:-13538,mm_net:150682,mm_chg:14873,oi:923157},
+  {date:"2026-04-07",commodity:"Soybean Meal",prod_net:-236834,prod_chg:3146,mm_net:93540,mm_chg:-6393,oi:669143},
+  {date:"2026-04-07",commodity:"Canola",prod_net:-73640,prod_chg:11704,mm_net:98485,mm_chg:-9066,oi:370432},
+  {date:"2026-04-07",commodity:"Rough Rice",prod_net:2426,prod_chg:111,mm_net:-2931,mm_chg:241,oi:12730},
+  {date:"2026-04-14",commodity:"Corn",prod_net:-447998,prod_chg:39006,mm_net:159483,mm_chg:-59149,oi:2357628},
+  {date:"2026-04-14",commodity:"Wheat",prod_net:-57442,prod_chg:-1328,mm_net:-7266,mm_chg:-1633,oi:565279},
+  {date:"2026-04-14",commodity:"Soybeans",prod_net:-260588,prod_chg:3340,mm_net:175151,mm_chg:-14479,oi:1271026},
+  {date:"2026-04-14",commodity:"KC Wheat",prod_net:-71977,prod_chg:693,mm_net:16924,mm_chg:1316,oi:333674},
+  {date:"2026-04-14",commodity:"MN Wheat",prod_net:-23891,prod_chg:4628,mm_net:17971,mm_chg:-3390,oi:75139},
+  {date:"2026-04-14",commodity:"Soybean Oil",prod_net:-214629,prod_chg:9149,mm_net:148320,mm_chg:-2362,oi:892433},
+  {date:"2026-04-14",commodity:"Soybean Meal",prod_net:-269255,prod_chg:-32421,mm_net:135743,mm_chg:42203,oi:683714},
+  {date:"2026-04-14",commodity:"Canola",prod_net:-43306,prod_chg:30334,mm_net:72829,mm_chg:-25656,oi:343554},
+  {date:"2026-04-14",commodity:"Rough Rice",prod_net:3383,prod_chg:957,mm_net:-3562,mm_chg:-631,oi:13509}
+];
+
+// ── AUTH ─────────────────────────────────────────────────────
+function doLogin(){
+  const u=document.getElementById('usr').value.trim();
+  const p=document.getElementById('pwd').value;
+  if(USERS[u]&&USERS[u]===p){
+    sessionStorage.setItem('cot_auth','1');
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').style.display='block';
+    init();
+  } else {
+    document.getElementById('login-err').style.display='block';
+  }
+}
+function doLogout(){
+  sessionStorage.removeItem('cot_auth');
+  location.reload();
+}
+document.getElementById('pwd').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+document.getElementById('usr').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+if(sessionStorage.getItem('cot_auth')==='1'){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+}
+
+// ── DATA HELPERS ──────────────────────────────────────────────
+const COMMS=["Corn","Soybeans","Wheat","KC Wheat","MN Wheat","Soybean Oil","Soybean Meal","Canola","Rough Rice"];
+const fmt=n=>(n>=0?'+':'')+Math.round(n).toLocaleString();
+const gc=n=>n>=0?'var(--green)':'var(--red)';
+const pcol=p=>p<25?'#ef4444':p>75?'#22c55e':'#3b82f6';
+function rows(c){return RAW.filter(r=>r.commodity===c).sort((a,b)=>a.date.localeCompare(b.date));}
+function rank(arr,v){return arr.length<2?50:Math.round(arr.filter(x=>x<v).length/arr.length*100);}
+function pctOI(r){return r.oi>0?Math.round(r.mm_net/r.oi*100*10)/10:0;}
+
+// ── STATE ─────────────────────────────────────────────────────
+let chart=null, spreadChart=null, prodMomChart=null, divChart=null, tab='net';
+
+// ── INIT ──────────────────────────────────────────────────────
+function init(){
+  const dates=[...new Set(RAW.map(r=>r.date))].sort();
+  document.getElementById('data-range').textContent=dates[0]+' → '+dates[dates.length-1];
+  document.getElementById('week-count').textContent=dates.length;
+  document.getElementById('date-badge').textContent=dates[0].slice(0,7)+' – '+dates[dates.length-1].slice(0,7);
+  document.getElementById('comm').addEventListener('change',render);
+  document.getElementById('spread-b').addEventListener('change',render);
+  document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); tab=b.dataset.t;
+    document.getElementById('spread-b').style.display=tab==='spread'?'inline-block':'none';
+    render();
+  }));
+  render();
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+function render(){
+  const comm=document.getElementById('comm').value;
+  const data=rows(comm);
+  const last=data[data.length-1];
+  renderMetrics(last,data);
+
+  const cc=document.getElementById('chart-card');
+  const pc=document.getElementById('pct-card');
+  const sc=document.getElementById('spread-card');
+  const ac=document.getElementById('all-card');
+  const sig=document.getElementById('signal-card');
+  [cc,pc,sc,ac,sig].forEach(el=>el.style.display='none');
+
+  if(tab==='net'||tab==='chg'){cc.style.display='block';buildMainChart(data,tab);}
+  else if(tab==='pct'){pc.style.display='block';renderPct(data);}
+  else if(tab==='signal'){sig.style.display='block';renderSignal(data,comm);}
+  else if(tab==='spread'){sc.style.display='block';renderSpread();}
+  else if(tab==='all'){ac.style.display='block';renderAll();}
+}
+
+// ── CALENDAR SPREAD SIGNAL ────────────────────────────────────
+function renderSignal(data, comm){
+  document.getElementById('signal-comm-name').textContent=comm;
+  if(data.length<5){
+    document.getElementById('signal-traffic').innerHTML='<p style="color:var(--muted)">Need at least 5 weeks of data.</p>';
+    return;
+  }
+
+  const last=data[data.length-1];
+  const prev=data[data.length-2];
+  const w4ago=data.length>=5?data[data.length-5]:data[0];
+
+  // ── Key signals ──
+  // 1. Producer 4-week momentum (change in prod_net over 4 weeks)
+  const prod4wk=last.prod_net - w4ago.prod_net;
+  // 2. MM 4-week momentum
+  const mm4wk=last.mm_net - w4ago.mm_net;
+  // 3. WoW producer change direction
+  const prodWoW=last.prod_chg;
+  // 4. Divergence = MM net minus Producer net (wider = more bullish for spreads)
+  const divNow=last.mm_net - last.prod_net;
+  const divPrev=prev.mm_net - prev.prod_net;
+  const divW4=w4ago.mm_net - w4ago.prod_net;
+  const div4wkChg=divNow - divW4;
+
+  // ── Score-based signal (−4 to +4) ──
+  // Negative prod 4wk momentum = producers adding shorts = bullish spread
+  let score=0;
+  if(prod4wk < -20000) score+=2; else if(prod4wk < 0) score+=1; else if(prod4wk > 20000) score-=2; else score-=1;
+  // MM adding longs = bullish spread
+  if(mm4wk > 20000) score+=2; else if(mm4wk > 0) score+=1; else if(mm4wk < -20000) score-=2; else score-=1;
+  // WoW producer still adding shorts
+  if(prodWoW < -5000) score+=1; else if(prodWoW > 5000) score-=1;
+  // Divergence widening
+  if(div4wkChg > 20000) score+=1; else if(div4wkChg < -20000) score-=1;
+
+  // ── Traffic light ──
+  let lightBg, lightEmoji, labelText, descText;
+  if(score>=3){
+    lightBg='rgba(34,197,94,0.15)'; lightEmoji='🟢'; labelText='Bull spread signal';
+    descText=`Producers are aggressively adding shorts (${fmt(prod4wk)} over 4 weeks), locking in deferred prices and pressuring the back of the curve. Managed Money simultaneously added ${fmt(mm4wk)} contracts long. The structural setup strongly favours nearby premium over deferred — bull calendar spread conditions intact.`;
+  } else if(score>=1){
+    lightBg='rgba(245,158,11,0.15)'; lightEmoji='🟡'; labelText='Mild bull / watch';
+    descText=`Producer short build is present but momentum is softening. MM positioning is supportive but not aggressively so. The bull spread structure remains in place but conviction is lower. Watch next week's data for resumption or stall.`;
+  } else if(score>=-1){
+    lightBg='rgba(245,158,11,0.12)'; lightEmoji='🟡'; labelText='Neutral — no clear signal';
+    descText=`Producer hedging and MM positioning are mixed or flat. No strong directional bias for calendar spreads from positioning alone this week. Wait for clearer build or unwind signals.`;
+  } else if(score>=-3){
+    lightBg='rgba(239,68,68,0.12)'; lightEmoji='🟠'; labelText='Spread peak warning';
+    descText=`Producer short momentum is stalling or reversing — shorts are being covered. MM is also trimming longs. The structural bid to nearby contracts is fading. Calendar spread bulls should be cautious; risk of mean reversion increasing.`;
+  } else {
+    lightBg='rgba(239,68,68,0.18)'; lightEmoji='🔴'; labelText='Bear spread signal';
+    descText=`Producers are actively covering shorts and MM is cutting longs aggressively. The structural support for bull spreads has unwound. Deferred months likely to outperform nearby on a relative basis.`;
+  }
+
+  document.getElementById('signal-light').style.background=lightBg;
+  document.getElementById('signal-light').textContent=lightEmoji;
+  document.getElementById('signal-label').textContent=labelText;
+  document.getElementById('signal-desc').textContent=descText;
+
+  // ── Signal metric cards ──
+  const prodPct=rank(data.map(r=>r.prod_net),last.prod_net);
+  const mmPct=rank(data.map(r=>r.mm_net),last.mm_net);
+  document.getElementById('signal-metrics').innerHTML=`
+    <div class="metric"><div class="metric-label">Producer 4-week change</div><div class="metric-val" style="color:${prod4wk<0?'var(--red)':'var(--green)'}">${fmt(prod4wk)}</div><div class="metric-sub">Adding shorts = negative = bullish spread</div></div>
+    <div class="metric"><div class="metric-label">MM 4-week change</div><div class="metric-val" style="color:${mm4wk>=0?'var(--green)':'var(--red)'}">${fmt(mm4wk)}</div><div class="metric-sub">Adding longs = positive = bullish spread</div></div>
+    <div class="metric"><div class="metric-label">MM vs Producer divergence</div><div class="metric-val" style="color:${divNow>0?'var(--green)':'var(--amber)'}">${fmt(divNow)}</div><div class="metric-sub">4-week change: ${fmt(div4wkChg)}</div></div>
+    <div class="metric"><div class="metric-label">Signal score</div><div class="metric-val" style="color:${score>=2?'var(--green)':score<=-2?'var(--red)':'var(--amber)'}">${score>0?'+':''}${score} / 6</div><div class="metric-sub">Producer: ${prodPct}th pct &nbsp;·&nbsp; MM: ${mmPct}th pct</div></div>`;
+
+  // ── Producer momentum chart ──
+  const labels=data.map(r=>r.date.slice(5));
+  const rolling4=data.map((_,i)=>i>=4?data[i].prod_net-data[i-4].prod_net:null);
+  if(prodMomChart)prodMomChart.destroy();
+  prodMomChart=new Chart(document.getElementById('prod-mom-chart').getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'WoW change',data:data.map(r=>r.prod_chg),backgroundColor:data.map(r=>r.prod_chg<0?'rgba(239,68,68,0.65)':'rgba(34,197,94,0.65)'),borderWidth:0,borderRadius:2,order:2},
+      {label:'4-week rolling',data:rolling4,type:'line',borderColor:'#f59e0b',borderWidth:2,borderDash:[5,4],backgroundColor:'transparent',pointRadius:3,pointBackgroundColor:'#f59e0b',tension:.3,order:1}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y!=null?Math.round(c.parsed.y).toLocaleString():'–'}`}}},
+      scales:{x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{maxTicksLimit:10,font:{size:11},color:'#8892a4'}},y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{font:{size:11},color:'#8892a4',callback:v=>Math.abs(v)>=1000?(v/1000).toFixed(0)+'k':v}}}
+    }});
+
+  // ── Divergence chart ──
+  const divergence=data.map(r=>r.mm_net - r.prod_net);
+  if(divChart)divChart.destroy();
+  divChart=new Chart(document.getElementById('div-chart').getContext('2d'),{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'Producer net',data:data.map(r=>r.prod_net),borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.08)',borderWidth:1.5,fill:true,tension:.3,pointRadius:2,pointBackgroundColor:'#3b82f6'},
+      {label:'MM net',data:data.map(r=>r.mm_net),borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.08)',borderWidth:1.5,fill:true,tension:.3,pointRadius:2,pointBackgroundColor:'#22c55e'},
+      {label:'Divergence (MM−Prod)',data:divergence,borderColor:'#f59e0b',backgroundColor:'transparent',borderWidth:1.5,borderDash:[5,4],tension:.3,pointRadius:2,pointBackgroundColor:'#f59e0b',yAxisID:'y2'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{label:c=>` ${c.dataset.label}: ${Math.round(c.parsed.y).toLocaleString()}`}}},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{maxTicksLimit:10,font:{size:11},color:'#8892a4'}},
+        y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{font:{size:11},color:'#8892a4',callback:v=>Math.abs(v)>=1000?(v/1000).toFixed(0)+'k':v}},
+        y2:{position:'right',grid:{display:false},ticks:{font:{size:11},color:'#f59e0b',callback:v=>Math.abs(v)>=1000?(v/1000).toFixed(0)+'k':v}}
+      }}
+  });
+}
+
+function renderMetrics(l,data){
+  const mmPctOI=pctOI(l);
+  const prodPctOI=l.oi>0?Math.round(l.prod_net/l.oi*100*10)/10:0;
+  document.getElementById('metrics').innerHTML=`
+    <div class="metric"><div class="metric-label">Producer net</div><div class="metric-val" style="color:${gc(l.prod_net)}">${fmt(l.prod_net)}</div><div class="metric-sub">WoW <span style="color:${gc(l.prod_chg)}">${fmt(l.prod_chg)}</span> &nbsp;·&nbsp; ${prodPctOI}% of OI</div></div>
+    <div class="metric"><div class="metric-label">Managed money net</div><div class="metric-val" style="color:${gc(l.mm_net)}">${fmt(l.mm_net)}</div><div class="metric-sub">WoW <span style="color:${gc(l.mm_chg)}">${fmt(l.mm_chg)}</span> &nbsp;·&nbsp; ${mmPctOI}% of OI</div></div>
+    <div class="metric"><div class="metric-label">Open interest</div><div class="metric-val">${(l.oi/1000).toFixed(0)}k</div><div class="metric-sub">contracts total</div></div>
+    <div class="metric"><div class="metric-label">Week ending</div><div class="metric-val" style="font-size:16px">${l.date}</div><div class="metric-sub">latest data point</div></div>`;
+}
+
+function renderPct(data){
+  const l=data[data.length-1];
+  const pp=rank(data.map(r=>r.prod_net),l.prod_net);
+  const mp=rank(data.map(r=>r.mm_net),l.mm_net);
+  const mmoi=rank(data.map(r=>pctOI(r)),pctOI(l));
+  document.getElementById('pct-bars').innerHTML=`
+    <div class="prow"><div class="plbl"><span>Producer / Merchant / Processor</span><strong>${pp}th pct &nbsp;·&nbsp; ${fmt(l.prod_net)} contracts</strong></div><div class="ptr"><div class="pfil" style="width:${pp}%;background:${pcol(pp)}"></div></div></div>
+    <div class="prow"><div class="plbl"><span>Managed Money</span><strong>${mp}th pct &nbsp;·&nbsp; ${fmt(l.mm_net)} contracts</strong></div><div class="ptr"><div class="pfil" style="width:${mp}%;background:${pcol(mp)}"></div></div></div>
+    <div class="prow"><div class="plbl"><span>MM net as % of Open Interest</span><strong>${mmoi}th pct &nbsp;·&nbsp; ${pctOI(l)}% of OI</strong></div><div class="ptr"><div class="pfil" style="width:${mmoi}%;background:${pcol(mmoi)}"></div></div></div>`;
+}
+
+function renderAll(){
+  const dates=[...new Set(RAW.map(r=>r.date))].sort();
+  const latest=dates[dates.length-1];
+  const latestRows=RAW.filter(r=>r.date===latest);
+  document.getElementById('all-hdr').textContent='All commodities — week ending '+latest;
+  document.getElementById('all-grid').innerHTML=latestRows.map(r=>{
+    const mp=rank(rows(r.commodity).map(x=>x.mm_net),r.mm_net);
+    const pp=rank(rows(r.commodity).map(x=>x.prod_net),r.prod_net);
+    return`<div class="spread-card">
+      <div class="spread-name">${r.commodity}</div>
+      <div class="spread-row">
+        <div class="spread-item"><div class="spread-lbl">Producer</div><div class="spread-val" style="color:${gc(r.prod_net)}">${fmt(r.prod_net)}</div><div class="spread-chg" style="color:${gc(r.prod_chg)}">${fmt(r.prod_chg)} WoW &nbsp; ${pp}th pct</div></div>
+        <div class="spread-item"><div class="spread-lbl">Mgd Money</div><div class="spread-val" style="color:${gc(r.mm_net)}">${fmt(r.mm_net)}</div><div class="spread-chg" style="color:${gc(r.mm_chg)}">${fmt(r.mm_chg)} WoW &nbsp; ${mp}th pct</div></div>
+      </div>
+      <div class="oi-line">OI: ${(r.oi/1000).toFixed(0)}k &nbsp;·&nbsp; MM: ${pctOI(r)}% of OI</div>
+    </div>`;
+  }).join('');
+}
+
+function renderSpread(){
+  const a=document.getElementById('comm').value;
+  const b=document.getElementById('spread-b').value;
+  if(a===b){document.getElementById('spread-signals').innerHTML='<p style="color:var(--muted);font-size:13px">Select two different commodities.</p>';return;}
+  const ra=rows(a), rb=rows(b);
+  const dates=[...new Set([...ra.map(r=>r.date),...rb.map(r=>r.date)])].sort();
+  const getRow=(arr,d)=>arr.find(r=>r.date===d);
+  const labels=dates.map(d=>d.slice(5));
+  const mmA=dates.map(d=>{const r=getRow(ra,d);return r?r.mm_net:null;});
+  const mmB=dates.map(d=>{const r=getRow(rb,d);return r?r.mm_net:null;});
+  const diff=dates.map((d,i)=>mmA[i]!=null&&mmB[i]!=null?mmA[i]-mmB[i]:null);
+
+  document.getElementById('spread-chart-title').textContent=`MM net positioning — ${a} vs ${b}`;
+  document.getElementById('spread-legend').innerHTML=`
+    <div class="li"><div class="ld" style="background:#3b82f6"></div>${a} MM net</div>
+    <div class="li"><div class="ld" style="background:#22c55e"></div>${b} MM net</div>
+    <div class="li"><div class="ld" style="background:#f59e0b;border-top:2px dashed #f59e0b;height:0"></div>Spread diff (${a}−${b})</div>`;
+
+  if(spreadChart)spreadChart.destroy();
+  spreadChart=new Chart(document.getElementById('spread-chart').getContext('2d'),{
+    type:'line',
+    data:{labels,datasets:[
+      {label:`${a} MM`,data:mmA,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.08)',borderWidth:1.5,fill:true,tension:.3,pointRadius:3,pointBackgroundColor:'#3b82f6'},
+      {label:`${b} MM`,data:mmB,borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.08)',borderWidth:1.5,fill:true,tension:.3,pointRadius:3,pointBackgroundColor:'#22c55e'},
+      {label:'Spread diff',data:diff,borderColor:'#f59e0b',backgroundColor:'transparent',borderWidth:1.5,borderDash:[5,4],tension:.3,pointRadius:0,yAxisID:'y2'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y!=null?Math.round(c.parsed.y).toLocaleString():'–'}`}}},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{maxTicksLimit:10,font:{size:11},color:'#8892a4'}},
+        y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{font:{size:11},color:'#8892a4',callback:v=>Math.abs(v)>=1000?(v/1000).toFixed(0)+'k':v}},
+        y2:{position:'right',grid:{display:false},ticks:{font:{size:11},color:'#f59e0b',callback:v=>Math.abs(v)>=1000?(v/1000).toFixed(0)+'k':v}}
+      }}
+  });
+
+  // signals
+  const latestA=ra[ra.length-1], latestB=rb[rb.length-1];
+  const mpA=rank(ra.map(r=>r.mm_net),latestA.mm_net);
+  const mpB=rank(rb.map(r=>r.mm_net),latestB.mm_net);
+  const divergence=latestA.mm_net-latestB.mm_net;
+  const signal=mpA>70&&mpB<30?`MM heavily long ${a} vs short ${b} — potential ${b}/${a} spread (long ${b}, short ${a})`:
+               mpB>70&&mpA<30?`MM heavily long ${b} vs short ${a} — potential ${a}/${b} spread (long ${a}, short ${b})`:
+               mpA>70&&mpB>70?`Both legs crowded long — watch for simultaneous unwind, spread may compress`:
+               mpA<30&&mpB<30?`Both legs crowded short — potential covering rally in both`:
+               `No strong positioning divergence signal currently (${a} MM: ${mpA}th pct, ${b} MM: ${mpB}th pct)`;
+  document.getElementById('spread-signals').innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:1rem">
+      <div class="spread-card"><div class="spread-name">${a} MM net</div><div class="spread-val" style="color:${gc(latestA.mm_net)}">${fmt(latestA.mm_net)}</div><div class="spread-chg">${mpA}th percentile</div></div>
+      <div class="spread-card"><div class="spread-name">${b} MM net</div><div class="spread-val" style="color:${gc(latestB.mm_net)}">${fmt(latestB.mm_net)}</div><div class="spread-chg">${mpB}th percentile</div></div>
+      <div class="spread-card"><div class="spread-name">MM divergence (${a}−${b})</div><div class="spread-val" style="color:${gc(divergence)}">${fmt(divergence)}</div><div class="spread-chg">contracts</div></div>
+    </div>
+    <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.875rem 1rem;font-size:13px;color:var(--text)">
+      <span style="color:var(--amber);font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Signal &nbsp;</span>${signal}
+    </div>`;
+}
+
+function buildMainChart(data,t){
+  const labels=data.map(r=>r.date.slice(5));
+  let ds=[];
+  if(t==='net'){
+    document.getElementById('chart-title').textContent='Net positioning (contracts)';
+    document.getElementById('legend').innerHTML=`<div class="li"><div class="ld" style="background:#3b82f6"></div>Producer net</div><div class="li"><div class="ld" style="background:#22c55e"></div>Managed money net</div>`;
+    ds=[
+      {label:'Producer net',data:data.map(r=>r.prod_net),borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.1)',borderWidth:1.5,fill:true,tension:.3,pointRadius:3,pointBackgroundColor:'#3b82f6'},
+      {label:'Managed money net',data:data.map(r=>r.mm_net),borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.1)',borderWidth:1.5,fill:true,tension:.3,pointRadius:3,pointBackgroundColor:'#22c55e'}
+    ];
+    if(chart)chart.destroy();
+    chart=new Chart(document.getElementById('main-chart').getContext('2d'),{type:'line',data:{labels,datasets:ds},options:chartOpts()});
+  } else {
+    document.getElementById('chart-title').textContent='Weekly change in net positioning (contracts)';
+    document.getElementById('legend').innerHTML=`<div class="li"><div class="ld" style="background:#3b82f6"></div>Producer WoW</div><div class="li"><div class="ld" style="background:#22c55e"></div>MM WoW</div>`;
+    ds=[
+      {label:'Producer WoW',data:data.map(r=>r.prod_chg),backgroundColor:data.map(r=>r.prod_chg>=0?'rgba(34,197,94,0.7)':'rgba(239,68,68,0.7)'),borderWidth:0,borderRadius:3},
+      {label:'MM WoW',data:data.map(r=>r.mm_chg),backgroundColor:data.map(r=>r.mm_chg>=0?'rgba(59,130,246,0.7)':'rgba(239,68,68,0.5)'),borderWidth:0,borderRadius:3}
+    ];
+    if(chart)chart.destroy();
+    chart=new Chart(document.getElementById('main-chart').getContext('2d'),{type:'bar',data:{labels,datasets:ds},options:chartOpts()});
+  }
+}
+
+function chartOpts(){
+  return{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{label:c=>` ${c.dataset.label}: ${Math.round(c.parsed.y).toLocaleString()}`}}},
+    scales:{
+      x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{maxTicksLimit:10,font:{size:11},color:'#8892a4'}},
+      y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{font:{size:11},color:'#8892a4',callback:v=>Math.abs(v)>=1000?(v/1000).toFixed(0)+'k':v}}
+    }};
+}
+</script>
+</body>
+</html>
 
