@@ -1,0 +1,42 @@
+name: Update COT Dashboard
+
+on:
+  push:
+    paths:
+      - 'data/**.pdf'   # triggers whenever a PDF is added/changed in data/
+
+  workflow_dispatch:    # also allows manual trigger from GitHub UI
+
+jobs:
+  update-dashboard:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write   # needed to commit the updated index.html back
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q poppler-utils
+          pip install pdfplumber pypdf --quiet
+
+      - name: Run COT extractor
+        run: python scripts/extract_cot.py
+
+      - name: Commit and push updated index.html
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          # Only commit if something actually changed
+          git diff --staged --quiet || git commit -m "Auto-update: COT data $(date +'%Y-%m-%d')"
+          git push
