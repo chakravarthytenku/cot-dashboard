@@ -95,6 +95,20 @@
     border-radius: var(--radius-sm); color: var(--text); font-size: 13px; cursor: pointer; outline: none;
   }
   select:focus { border-color: var(--accent); }
+  input[type="date"] {
+    padding: 7px 10px; background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); color: var(--text); font-size: 13px; cursor: pointer;
+    outline: none; color-scheme: dark;
+  }
+  input[type="date"]:focus { border-color: var(--accent); }
+  .date-range-wrap { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .date-range-wrap label { font-size:11px; color:var(--muted); white-space:nowrap; }
+  .date-reset-btn {
+    padding:6px 10px; background:transparent; border:1px solid var(--border2);
+    border-radius:var(--radius-sm); color:var(--muted); font-size:12px; cursor:pointer;
+    transition:all .15s; white-space:nowrap;
+  }
+  .date-reset-btn:hover { color:var(--text); border-color:var(--accent); }
   .tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 1.25rem; }
   .tab {
     padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border2);
@@ -257,6 +271,13 @@
         <option value="Cocoa">vs Cocoa</option>
         <option value="Cotton">vs Cotton</option>
       </select>
+      <div class="date-range-wrap">
+        <label>From</label>
+        <input type="date" id="date-from">
+        <label>To</label>
+        <input type="date" id="date-to">
+        <button class="date-reset-btn" onclick="resetDates()">All dates</button>
+      </div>
     </div>
 
     <div class="tabs">
@@ -587,7 +608,7 @@ const RAW=[
   {date:"2026-04-28",commodity:"Sugar",prod_net:-73606,prod_chg:-21910,mm_net:-187345,mm_chg:2215,oi:1153429},
   {date:"2026-04-28",commodity:"Cocoa",prod_net:-17054,prod_chg:3227,mm_net:-19885,mm_chg:-3499,oi:237661},
   {date:"2026-04-28",commodity:"Cotton",prod_net:-128133,prod_chg:-828,mm_net:38355,mm_chg:3891,oi:459650},
-  // ── Week ending 2026-05-05 ──,
+  // ── Week ending 05 May 2026 ──
   {date:"2026-05-05",commodity:"Corn",prod_net:-663170,prod_chg:-108804,mm_net:343925,mm_chg:79822,oi:2515587},
   {date:"2026-05-05",commodity:"Wheat",prod_net:-68769,prod_chg:6882,mm_net:-9903,mm_chg:-20567,oi:540497},
   {date:"2026-05-05",commodity:"Soybeans",prod_net:-304624,prod_chg:-41686,mm_net:221617,mm_chg:36335,oi:1192969},
@@ -640,17 +661,57 @@ function zscore(arr,v){if(arr.length<3)return 0;const m=arr.reduce((a,b)=>a+b,0)
 
 const ALL_COMMS=["Corn","Soybeans","Wheat","KC Wheat","MN Wheat","Soybean Oil","Soybean Meal","Canola","Rough Rice","Coffee","Sugar","Cocoa","Cotton"];
 
+// ── DATE RANGE HELPERS ────────────────────────────────────────
+function getDateRange(){
+  const from=document.getElementById('date-from').value;
+  const to=document.getElementById('date-to').value;
+  return {from, to};
+}
+
+function rows(c){
+  const {from,to}=getDateRange();
+  return RAW.filter(r=>{
+    if(r.commodity!==c) return false;
+    if(from && r.date < from) return false;
+    if(to   && r.date > to)   return false;
+    return true;
+  }).sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+function resetDates(){
+  const allDates=[...new Set(RAW.map(r=>r.date))].sort();
+  document.getElementById('date-from').value=allDates[0];
+  document.getElementById('date-to').value=allDates[allDates.length-1];
+  render();
+}
+
 // ── STATE ─────────────────────────────────────────────────────
 let chart=null, spreadChart=null, prodMomChart=null, divChart=null, tab='net', scanView='mm';
 
 // ── INIT ──────────────────────────────────────────────────────
 function init(){
-  const dates=[...new Set(RAW.map(r=>r.date))].sort();
-  document.getElementById('data-range').textContent=dates[0]+' → '+dates[dates.length-1];
-  document.getElementById('week-count').textContent=dates.length;
-  document.getElementById('date-badge').textContent=dates[0].slice(0,7)+' – '+dates[dates.length-1].slice(0,7);
+  const allDates=[...new Set(RAW.map(r=>r.date))].sort();
+  const firstDate=allDates[0];
+  const lastDate=allDates[allDates.length-1];
+
+  // Populate date pickers with full range as default
+  document.getElementById('date-from').value=firstDate;
+  document.getElementById('date-to').value=lastDate;
+  // Set min/max so user can't go outside data range
+  document.getElementById('date-from').min=firstDate;
+  document.getElementById('date-from').max=lastDate;
+  document.getElementById('date-to').min=firstDate;
+  document.getElementById('date-to').max=lastDate;
+
+  document.getElementById('data-range').textContent=firstDate+' → '+lastDate;
+  document.getElementById('week-count').textContent=allDates.length;
+  document.getElementById('date-badge').textContent=firstDate.slice(0,7)+' – '+lastDate.slice(0,7);
+
   document.getElementById('comm').addEventListener('change',render);
   document.getElementById('spread-b').addEventListener('change',render);
+  document.getElementById('date-from').addEventListener('change',render);
+  document.getElementById('date-to').addEventListener('change',render);
+
   document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{
     document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
     b.classList.add('on'); tab=b.dataset.t;
