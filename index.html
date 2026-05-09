@@ -326,16 +326,16 @@
       </div>
       <!-- Producer momentum chart -->
       <div class="card">
-        <div class="card-title">Producer short build — 4-week rate of change</div>
-        <div class="legend"><div class="li"><div class="ld" style="background:#ef4444"></div>Producer net (bars = WoW change)</div><div class="li"><div class="ld" style="background:#f59e0b;border-top:2px dashed #f59e0b;height:0"></div>4-week rolling change</div></div>
+        <div class="card-title">MM flow — WoW change and 4-week momentum (nearby price driver)</div>
+        <div class="legend"><div class="li"><div class="ld" style="background:#22c55e"></div>MM WoW change (green = adding longs = nearby bid)</div><div class="li"><div class="ld" style="background:#f59e0b;border-top:2px dashed #f59e0b;height:0"></div>4-week rolling MM change</div></div>
         <div style="position:relative;width:100%;height:260px">
           <canvas id="prod-mom-chart" role="img" aria-label="Producer short momentum chart"></canvas>
         </div>
       </div>
       <!-- MM vs Producer divergence chart -->
       <div class="card">
-        <div class="card-title">MM vs Producer divergence — net positions over time</div>
-        <div class="legend"><div class="li"><div class="ld" style="background:#3b82f6"></div>Producer net</div><div class="li"><div class="ld" style="background:#22c55e"></div>MM net</div><div class="li"><div class="ld" style="background:#f59e0b;border-top:2px dashed #f59e0b;height:0"></div>Divergence (MM − Producer)</div></div>
+        <div class="card-title">MM vs Producer net positions + net flow differential (4-week)</div>
+        <div class="legend"><div class="li"><div class="ld" style="background:#22c55e"></div>MM net</div><div class="li"><div class="ld" style="background:#3b82f6"></div>Producer net</div><div class="li"><div class="ld" style="background:#f59e0b;border-top:2px dashed #f59e0b;height:0"></div>Net flow diff (MM change − |Prod change|) — +ve = MM dominated</div></div>
         <div style="position:relative;width:100%;height:280px">
           <canvas id="div-chart" role="img" aria-label="MM vs Producer divergence chart"></canvas>
         </div>
@@ -344,9 +344,12 @@
       <div class="card" style="font-size:13px;color:var(--muted);line-height:1.8">
         <div class="card-title">How to read this</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem">
-          <div><div style="color:var(--green);font-weight:500;margin-bottom:4px">🟢 Bull spread signal</div>Producers aggressively adding shorts (selling deferred). Rate of change accelerating negative. MM simultaneously going longer. Divergence widening. → Nearby premium over deferred likely to expand.</div>
-          <div><div style="color:var(--amber);font-weight:500;margin-bottom:4px">🟡 Neutral / watch</div>Producer short build slowing or stalling. MM not adding aggressively. Divergence flat. → Spread may consolidate. Wait for resumption of producer hedging or MM conviction.</div>
-          <div><div style="color:var(--red);font-weight:500;margin-bottom:4px">🔴 Spread peak warning</div>Producer covering shorts (buying back). MM cutting longs. Divergence narrowing. → Structural support for bull spread is fading. Risk of spread reversal increasing.</div>
+          <div><div style="color:var(--green);font-weight:500;margin-bottom:4px">🟢 Nearby supported — bull spread tendency</div>MM actively adding longs. Since specs concentrate in nearby active contracts, their buying directly bids the front month relative to deferred. Flow dominated by MM = nearby outperforms = spread strengthens.</div>
+          <div><div style="color:var(--amber);font-weight:500;margin-bottom:4px">🟡 Neutral / watch</div>MM flow is not dominant in either direction. Producer hedging is present but not overpowering nearby. No clear spread bias from COT alone — use basis levels and seasonal carry structure as additional context.</div>
+          <div><div style="color:var(--red);font-weight:500;margin-bottom:4px">🔴 Nearby under pressure — bear spread tendency</div>MM trimming or cutting longs. Speculative liquidation directly offers the nearby contract. Even if producers are still short, the MM unwind is the dominant force. Deferred months hold better during MM liquidation — spread weakens (N-Z goes more negative).</div>
+        </div>
+        <div style="margin-top:1rem;padding:.75rem;background:var(--bg3);border-radius:var(--radius-sm);font-size:12px">
+          <strong style="color:var(--text)">Key principle:</strong> Producer shorts alone do not determine spread direction. The critical variable is <strong style="color:var(--text)">MM flow in the nearby</strong> — are specs adding or cutting? That is what moves N vs Z. The net flow differential (MM change vs producer change magnitude) shows which group is dominating price action in the front month.
         </div>
       </div>
     </div>
@@ -928,7 +931,7 @@ function renderScanner(){
     } else if(v==='prod'){
       direction=s.last.prod_net<0?'extreme short hedge':'unusually long';
       implication=s.last.prod_net<0
-        ?`Producers at ${s.prPOI}% of OI short (${s.prPct}th pct). 4-week build: ${fmt(s.pr4wk)}. Heavy deferred selling — structurally bullish for nearby calendar spreads.`
+        ?`Producers at ${s.prPOI}% of OI short (${s.prPct}th pct). 4-week build: ${fmt(s.pr4wk)}. Heavy producer hedging across the curve. Spread direction depends on where MM is positioned — check MM view to see if nearby is being bid or offered simultaneously.`
         :`Producers unusually long at ${s.prPOI}% of OI (${s.prPct}th pct). Rare positioning — may signal producer bullishness or physical inventory dynamics.`;
     } else {
       direction=s.divNow>0?'MM much longer than Producers':'Producers much longer than MM';
@@ -961,47 +964,85 @@ function renderSignal(data, comm){
   const prev=data[data.length-2];
   const w4ago=data.length>=5?data[data.length-5]:data[0];
 
-  // ── Key signals ──
-  // 1. Producer 4-week momentum (change in prod_net over 4 weeks)
-  const prod4wk=last.prod_net - w4ago.prod_net;
-  // 2. MM 4-week momentum
-  const mm4wk=last.mm_net - w4ago.mm_net;
-  // 3. WoW producer change direction
-  const prodWoW=last.prod_chg;
-  // 4. Divergence = MM net minus Producer net (wider = more bullish for spreads)
-  const divNow=last.mm_net - last.prod_net;
-  const divPrev=prev.mm_net - prev.prod_net;
-  const divW4=w4ago.mm_net - w4ago.prod_net;
-  const div4wkChg=divNow - divW4;
+  // ── Corrected signal inputs ──────────────────────────────────
+  // The key insight: producer shorts alone don't determine spread direction.
+  // What matters is the NET FLOW DIFFERENTIAL between MM and Producers,
+  // and whether MM (nearby-concentrated) is building or liquidating.
 
-  // ── Score-based signal (−4 to +4) ──
-  // Negative prod 4wk momentum = producers adding shorts = bullish spread
-  let score=0;
-  if(prod4wk < -20000) score+=2; else if(prod4wk < 0) score+=1; else if(prod4wk > 20000) score-=2; else score-=1;
-  // MM adding longs = bullish spread
-  if(mm4wk > 20000) score+=2; else if(mm4wk > 0) score+=1; else if(mm4wk < -20000) score-=2; else score-=1;
-  // WoW producer still adding shorts
-  if(prodWoW < -5000) score+=1; else if(prodWoW > 5000) score-=1;
-  // Divergence widening
-  if(div4wkChg > 20000) score+=1; else if(div4wkChg < -20000) score-=1;
+  // 1. MM 4-week momentum — MM concentrated in nearby contracts
+  //    Adding longs = nearby bid = spread tends to strengthen (nearby > deferred)
+  //    Cutting longs = nearby offered = spread tends to weaken
+  const mm4wk = last.mm_net - w4ago.mm_net;
+  const mmWoW  = last.mm_chg;
 
-  // ── Traffic light ──
+  // 2. Producer 4-week momentum — producers hedge across the curve
+  const prod4wk = last.prod_net - w4ago.prod_net;
+  const prodWoW  = last.prod_chg;
+
+  // 3. Net flow differential: how much MORE did MM add vs how much MORE did producers add
+  //    Positive = MM dominated flow = nearby bid = bull spread tendency
+  //    Negative = Producer short build dominated = curve pressure = bear spread tendency
+  const flowDiff4wk = mm4wk - Math.abs(prod4wk);  // MM change vs magnitude of producer change
+  const flowDiffWoW = mmWoW - Math.abs(prodWoW);
+
+  // 4. MM trend — are specs still adding or starting to cut?
+  //    This is the most direct nearby price signal
+  const mmTrend3wk = data.length>=4
+    ? (data[data.length-1].mm_net - data[data.length-4].mm_net) / 3
+    : mmWoW;  // average WoW change over last 3 weeks
+
+  // 5. Producer covering signal — when producers start covering shorts
+  //    they buy back deferred = deferred rallies = spread weakens further OR
+  //    spread reverts depending on which leg moves more
+  const prodCovering = prodWoW > 5000;  // producers buying back shorts
+  const prodBuilding = prodWoW < -5000; // producers still adding shorts
+
+  // ── Score: what does MM flow tell us about nearby vs deferred ──
+  // Score range -6 to +6
+  // Positive = MM-driven = nearby supported = bull spread tendency
+  // Negative = Producer-dominated or MM liquidating = nearby weak = bear spread
+  let score = 0;
+
+  // Primary: MM WoW direction (strongest signal — directly hits nearby)
+  if(mmWoW > 20000)       score += 3;
+  else if(mmWoW > 5000)   score += 2;
+  else if(mmWoW > 0)      score += 1;
+  else if(mmWoW < -20000) score -= 3;
+  else if(mmWoW < -5000)  score -= 2;
+  else                    score -= 1;
+
+  // Secondary: 4-week flow differential (MM vs Producer magnitude)
+  if(flowDiff4wk > 30000)       score += 2;
+  else if(flowDiff4wk > 0)      score += 1;
+  else if(flowDiff4wk < -30000) score -= 2;
+  else                          score -= 1;
+
+  // Tertiary: MM 3-week trend direction
+  if(mmTrend3wk > 5000)        score += 1;
+  else if(mmTrend3wk < -5000)  score -= 1;
+
+  // ── Traffic light ──────────────────────────────────────────
+  const mmPct  = rank(data.map(r=>r.mm_net),  last.mm_net);
+  const prodPct= rank(data.map(r=>r.prod_net), last.prod_net);
+  const mmPOI  = pctOI(last);
+
   let lightBg, lightEmoji, labelText, descText;
-  if(score>=3){
-    lightBg='rgba(34,197,94,0.15)'; lightEmoji='🟢'; labelText='Bull spread signal';
-    descText=`Producers are aggressively adding shorts (${fmt(prod4wk)} over 4 weeks), locking in deferred prices and pressuring the back of the curve. Managed Money simultaneously added ${fmt(mm4wk)} contracts long. The structural setup strongly favours nearby premium over deferred — bull calendar spread conditions intact.`;
-  } else if(score>=1){
-    lightBg='rgba(245,158,11,0.15)'; lightEmoji='🟡'; labelText='Mild bull / watch';
-    descText=`Producer short build is present but momentum is softening. MM positioning is supportive but not aggressively so. The bull spread structure remains in place but conviction is lower. Watch next week's data for resumption or stall.`;
-  } else if(score>=-1){
-    lightBg='rgba(245,158,11,0.12)'; lightEmoji='🟡'; labelText='Neutral — no clear signal';
-    descText=`Producer hedging and MM positioning are mixed or flat. No strong directional bias for calendar spreads from positioning alone this week. Wait for clearer build or unwind signals.`;
-  } else if(score>=-3){
-    lightBg='rgba(239,68,68,0.12)'; lightEmoji='🟠'; labelText='Spread peak warning';
-    descText=`Producer short momentum is stalling or reversing — shorts are being covered. MM is also trimming longs. The structural bid to nearby contracts is fading. Calendar spread bulls should be cautious; risk of mean reversion increasing.`;
+
+  if(score >= 4){
+    lightBg='rgba(34,197,94,0.15)'; lightEmoji='🟢'; labelText='Nearby supported — bull spread tendency';
+    descText=`MM is actively adding longs (${fmt(mmWoW)} WoW, ${fmt(mm4wk)} over 4 weeks). Since MM concentrates in nearby active contracts, this bid supports the front month relative to deferred. Producer short build (${fmt(prodWoW)} WoW) is being outpaced by MM buying in the nearby. Watch for front month to hold premium over deferred while MM continues adding.`;
+  } else if(score >= 2){
+    lightBg='rgba(34,197,94,0.10)'; lightEmoji='🟡'; labelText='Mild nearby support — monitor MM flow';
+    descText=`MM positioning is modestly supportive of nearby contracts (${fmt(mmWoW)} WoW). Producer short build (${fmt(prodWoW)} WoW) is present but not dominating flow. The nearby leg has moderate support. Watch whether MM continues to add or starts trimming — that will determine whether the spread strengthens or softens.`;
+  } else if(score >= 0){
+    lightBg='rgba(245,158,11,0.12)'; lightEmoji='🟡'; labelText='Neutral — mixed signals';
+    descText=`MM flow and producer positioning are giving conflicting signals. MM change (${fmt(mmWoW)} WoW) is not strong enough to dominate nearby pricing. No clear spread directional bias from COT alone this week. Consider basis levels and seasonal carry structure for additional context.`;
+  } else if(score >= -3){
+    lightBg='rgba(239,68,68,0.12)'; lightEmoji='🟠'; labelText='Nearby under pressure — bear spread tendency';
+    descText=`MM is trimming longs (${fmt(mmWoW)} WoW, ${fmt(mm4wk)} over 4 weeks). Liquidation of MM nearby longs directly offers the front month. Even if producers are still adding shorts (${fmt(prodWoW)} WoW), the MM unwind is the dominant force on the nearby leg. Deferred months tend to hold better during MM liquidation phases — spread likely to weaken (nearby underperforms deferred).`;
   } else {
-    lightBg='rgba(239,68,68,0.18)'; lightEmoji='🔴'; labelText='Bear spread signal';
-    descText=`Producers are actively covering shorts and MM is cutting longs aggressively. The structural support for bull spreads has unwound. Deferred months likely to outperform nearby on a relative basis.`;
+    lightBg='rgba(239,68,68,0.18)'; lightEmoji='🔴'; labelText='Strong nearby selling — spread weakening signal';
+    descText=`MM is aggressively cutting longs (${fmt(mmWoW)} WoW). Heavy speculative liquidation in nearby contracts combined with producer short pressure across the curve creates a bear spread environment — nearby offered, deferred relatively better supported. This is the environment where N-Z spreads weaken and full carry rebuilds.`;
   }
 
   document.getElementById('signal-light').style.background=lightBg;
@@ -1010,45 +1051,90 @@ function renderSignal(data, comm){
   document.getElementById('signal-desc').textContent=descText;
 
   // ── Signal metric cards ──
-  const prodPct=rank(data.map(r=>r.prod_net),last.prod_net);
-  const mmPct=rank(data.map(r=>r.mm_net),last.mm_net);
-  document.getElementById('signal-metrics').innerHTML=`
-    <div class="metric"><div class="metric-label">Producer 4-week change</div><div class="metric-val" style="color:${prod4wk<0?'var(--red)':'var(--green)'}">${fmt(prod4wk)}</div><div class="metric-sub">Adding shorts = negative = bullish spread</div></div>
-    <div class="metric"><div class="metric-label">MM 4-week change</div><div class="metric-val" style="color:${mm4wk>=0?'var(--green)':'var(--red)'}">${fmt(mm4wk)}</div><div class="metric-sub">Adding longs = positive = bullish spread</div></div>
-    <div class="metric"><div class="metric-label">MM vs Producer divergence</div><div class="metric-val" style="color:${divNow>0?'var(--green)':'var(--amber)'}">${fmt(divNow)}</div><div class="metric-sub">4-week change: ${fmt(div4wkChg)}</div></div>
-    <div class="metric"><div class="metric-label">Signal score</div><div class="metric-val" style="color:${score>=2?'var(--green)':score<=-2?'var(--red)':'var(--amber)'}">${score>0?'+':''}${score} / 6</div><div class="metric-sub">Producer: ${prodPct}th pct &nbsp;·&nbsp; MM: ${mmPct}th pct</div></div>`;
+  const netFlowLabel = flowDiff4wk >= 0
+    ? 'MM dominated flow — nearby bid'
+    : 'Producer dominated flow — curve pressure';
 
-  // ── Producer momentum chart ──
-  const labels=data.map(r=>r.date.slice(5));
-  const rolling4=data.map((_,i)=>i>=4?data[i].prod_net-data[i-4].prod_net:null);
-  if(prodMomChart)prodMomChart.destroy();
+  document.getElementById('signal-metrics').innerHTML=`
+    <div class="metric">
+      <div class="metric-label">MM WoW change</div>
+      <div class="metric-val" style="color:${gc(mmWoW)}">${fmt(mmWoW)}</div>
+      <div class="metric-sub">+ve = nearby bid &nbsp;·&nbsp; −ve = nearby offered</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">MM 4-week change</div>
+      <div class="metric-val" style="color:${gc(mm4wk)}">${fmt(mm4wk)}</div>
+      <div class="metric-sub">Trend direction of nearby pressure</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Net flow differential (4wk)</div>
+      <div class="metric-val" style="color:${gc(flowDiff4wk)}">${fmt(flowDiff4wk)}</div>
+      <div class="metric-sub">${netFlowLabel}</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Producer WoW</div>
+      <div class="metric-val" style="color:${prodWoW<0?'var(--amber)':'var(--muted)'}">${fmt(prodWoW)}</div>
+      <div class="metric-sub">Producer: ${prodPct}th pct &nbsp;·&nbsp; MM: ${mmPct}th pct</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Signal score</div>
+      <div class="metric-val" style="color:${score>=2?'var(--green)':score<=-2?'var(--red)':'var(--amber)'}">${score>0?'+':''}${score} / 6</div>
+      <div class="metric-sub">MM% of OI: ${mmPOI}%</div>
+    </div>`;
+
+  // ── MM flow chart (replaces producer momentum chart) ──
+  const labels = data.map(r=>r.date.slice(5));
+  const mmRolling4 = data.map((_,i)=>i>=4 ? data[i].mm_net-data[i-4].mm_net : null);
+  if(prodMomChart) prodMomChart.destroy();
   prodMomChart=new Chart(document.getElementById('prod-mom-chart').getContext('2d'),{
     type:'bar',
     data:{labels,datasets:[
-      {label:'WoW change',data:data.map(r=>r.prod_chg),backgroundColor:data.map(r=>r.prod_chg<0?'rgba(239,68,68,0.65)':'rgba(34,197,94,0.65)'),borderWidth:0,borderRadius:2,order:2},
-      {label:'4-week rolling',data:rolling4,type:'line',borderColor:'#f59e0b',borderWidth:2,borderDash:[5,4],backgroundColor:'transparent',pointRadius:3,pointBackgroundColor:'#f59e0b',tension:.3,order:1}
+      {label:'MM WoW change',data:data.map(r=>r.mm_chg),
+       backgroundColor:data.map(r=>r.mm_chg>=0?'rgba(34,197,94,0.65)':'rgba(239,68,68,0.65)'),
+       borderWidth:0,borderRadius:2,order:2},
+      {label:'MM 4-week rolling',data:mmRolling4,type:'line',
+       borderColor:'#f59e0b',borderWidth:2,borderDash:[5,4],
+       backgroundColor:'transparent',pointRadius:3,pointBackgroundColor:'#f59e0b',tension:.3,order:1}
     ]},
     options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y!=null?Math.round(c.parsed.y).toLocaleString():'–'}`}}},
-      scales:{x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{maxTicksLimit:10,font:{size:11},color:'#8892a4'}},y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{font:{size:11},color:'#8892a4',callback:v=>Math.abs(v)>=1000?(v/1000).toFixed(0)+'k':v}}}
-    }});
+      plugins:{legend:{display:false},
+        tooltip:{mode:'index',intersect:false,
+          callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y!=null?Math.round(c.parsed.y).toLocaleString():'–'}`}}},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{maxTicksLimit:10,font:{size:11},color:'#8892a4'}},
+        y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{font:{size:11},color:'#8892a4',
+            callback:v=>Math.abs(v)>=1000?(v/1000).toFixed(0)+'k':v}}
+      }}});
 
-  // ── Divergence chart ──
-  const divergence=data.map(r=>r.mm_net - r.prod_net);
-  if(divChart)divChart.destroy();
+  // ── MM vs Producer + net flow differential chart ──
+  const flowDiffArr = data.map((_,i)=>i>=4
+    ? (data[i].mm_net-data[i-4].mm_net) - Math.abs(data[i].prod_net-data[i-4].prod_net)
+    : null);
+  if(divChart) divChart.destroy();
   divChart=new Chart(document.getElementById('div-chart').getContext('2d'),{
     type:'line',
     data:{labels,datasets:[
-      {label:'Producer net',data:data.map(r=>r.prod_net),borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.08)',borderWidth:1.5,fill:true,tension:.3,pointRadius:2,pointBackgroundColor:'#3b82f6'},
-      {label:'MM net',data:data.map(r=>r.mm_net),borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.08)',borderWidth:1.5,fill:true,tension:.3,pointRadius:2,pointBackgroundColor:'#22c55e'},
-      {label:'Divergence (MM−Prod)',data:divergence,borderColor:'#f59e0b',backgroundColor:'transparent',borderWidth:1.5,borderDash:[5,4],tension:.3,pointRadius:2,pointBackgroundColor:'#f59e0b',yAxisID:'y2'}
+      {label:'MM net',data:data.map(r=>r.mm_net),
+       borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.08)',
+       borderWidth:1.5,fill:true,tension:.3,pointRadius:2,pointBackgroundColor:'#22c55e'},
+      {label:'Producer net',data:data.map(r=>r.prod_net),
+       borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.08)',
+       borderWidth:1.5,fill:true,tension:.3,pointRadius:2,pointBackgroundColor:'#3b82f6'},
+      {label:'Net flow diff (4wk)',data:flowDiffArr,
+       borderColor:'#f59e0b',backgroundColor:'transparent',
+       borderWidth:1.5,borderDash:[5,4],tension:.3,
+       pointRadius:2,pointBackgroundColor:'#f59e0b',yAxisID:'y2'}
     ]},
     options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{label:c=>` ${c.dataset.label}: ${Math.round(c.parsed.y).toLocaleString()}`}}},
+      plugins:{legend:{display:false},
+        tooltip:{mode:'index',intersect:false,
+          callbacks:{label:c=>` ${c.dataset.label}: ${Math.round(c.parsed.y).toLocaleString()}`}}},
       scales:{
         x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{maxTicksLimit:10,font:{size:11},color:'#8892a4'}},
-        y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{font:{size:11},color:'#8892a4',callback:v=>Math.abs(v)>=1000?(v/1000).toFixed(0)+'k':v}},
-        y2:{position:'right',grid:{display:false},ticks:{font:{size:11},color:'#f59e0b',callback:v=>Math.abs(v)>=1000?(v/1000).toFixed(0)+'k':v}}
+        y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{font:{size:11},color:'#8892a4',
+            callback:v=>Math.abs(v)>=1000?(v/1000).toFixed(0)+'k':v}},
+        y2:{position:'right',grid:{display:false},ticks:{font:{size:11},color:'#f59e0b',
+            callback:v=>Math.abs(v)>=1000?(v/1000).toFixed(0)+'k':v}}
       }}
   });
 }
