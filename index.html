@@ -285,6 +285,7 @@
       <button class="tab" data-t="chg">Weekly change</button>
       <button class="tab" data-t="pct">Percentile rank</button>
       <button class="tab" data-t="signal">Calendar spread signal</button>
+      <button class="tab" data-t="oldnew">Old vs New Crop</button>
       <button class="tab" data-t="scanner">Extremes scanner</button>
       <button class="tab" data-t="spread">MM spread view</button>
       <button class="tab" data-t="all">All commodities</button>
@@ -415,6 +416,75 @@
       <div class="card">
         <div class="card-title">High conviction extremes this week</div>
         <div id="conviction-summary"></div>
+      </div>
+    </div>
+
+    <!-- Old vs New Crop -->
+    <div id="oldnew-card" style="display:none">
+      <!-- Status bar -->
+      <div class="card" style="margin-bottom:1rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div>
+            <div class="card-title" style="margin-bottom:.25rem">Old crop vs New crop positioning — <span id="on-comm-name">Corn</span></div>
+            <div style="font-size:12px;color:var(--muted)">Live from CFTC Socrata API · <span id="on-report-date">loading…</span></div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div id="on-status" style="font-size:12px;color:var(--muted)">Fetching…</div>
+            <button onclick="fetchOldNew()" style="padding:5px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:12px;cursor:pointer">↻ Refresh</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- OI split bar -->
+      <div class="card">
+        <div class="card-title">Open interest split — old crop vs new crop</div>
+        <div id="on-oi-split"></div>
+      </div>
+
+      <!-- Main breakdown table -->
+      <div class="card">
+        <div class="card-title">Positioning breakdown by crop year</div>
+        <div id="on-table"></div>
+      </div>
+
+      <!-- Spread implication -->
+      <div class="card">
+        <div class="card-title">Calendar spread implication from old/new crop split</div>
+        <div id="on-signal"></div>
+      </div>
+
+      <!-- Charts -->
+      <div class="card">
+        <div class="card-title">Producer net — old crop vs new crop over time</div>
+        <div class="legend">
+          <div class="li"><div class="ld" style="background:#3b82f6"></div>Old crop producer net</div>
+          <div class="li"><div class="ld" style="background:#ef4444"></div>New crop producer net</div>
+        </div>
+        <div style="position:relative;width:100%;height:240px">
+          <canvas id="on-prod-chart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">MM net — old crop vs new crop over time (with spreading)</div>
+        <div class="legend">
+          <div class="li"><div class="ld" style="background:#22c55e"></div>Old crop MM net</div>
+          <div class="li"><div class="ld" style="background:#f59e0b"></div>New crop MM net</div>
+          <div class="li"><div class="ld" style="background:#a78bfa;border-top:2px dashed #a78bfa;height:0"></div>MM spreading (all)</div>
+        </div>
+        <div style="position:relative;width:100%;height:240px">
+          <canvas id="on-mm-chart"></canvas>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="card" style="font-size:12px;color:var(--muted);line-height:1.8">
+        <div class="card-title">How to read old crop vs new crop</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem">
+          <div><strong style="color:var(--text)">Old crop</strong> — positions in contracts within the current marketing year (e.g. Jul-26 for corn). These reflect nearby storage, basis, and current demand dynamics.</div>
+          <div><strong style="color:var(--text)">New crop</strong> — positions in deferred contracts (e.g. Dec-26 and beyond). Heavy producer shorts here = forward selling of anticipated production = deferred offered.</div>
+          <div><strong style="color:var(--text)">MM spreading</strong> — calendar spread positions held by managed money. When this builds rapidly, specs are directly trading the old/new crop spread — a strong directional signal.</div>
+          <div><strong style="color:var(--text)">Spread implication</strong> — if producer shorts are more concentrated in new crop vs old crop, deferred is under more pressure. If MM is long old crop but short new crop (or vice versa), they are expressing a spread view directly.</div>
+        </div>
       </div>
     </div>
 
@@ -737,14 +807,285 @@ function render(){
   const ac=document.getElementById('all-card');
   const sig=document.getElementById('signal-card');
   const scanc=document.getElementById('scanner-card');
-  [cc,pc,sc,ac,sig,scanc].forEach(el=>el.style.display='none');
+  const onc=document.getElementById('oldnew-card');
+  [cc,pc,sc,ac,sig,scanc,onc].forEach(el=>el.style.display='none');
 
   if(tab==='net'||tab==='chg'){cc.style.display='block';buildMainChart(data,tab);}
   else if(tab==='pct'){pc.style.display='block';renderPct(data);}
   else if(tab==='signal'){sig.style.display='block';renderSignal(data,comm);}
+  else if(tab==='oldnew'){onc.style.display='block';fetchOldNew();}
   else if(tab==='scanner'){scanc.style.display='block';renderScanner();}
   else if(tab==='spread'){sc.style.display='block';renderSpread();}
   else if(tab==='all'){ac.style.display='block';renderAll();}
+}
+
+// ── OLD VS NEW CROP — CFTC Socrata API ───────────────────────
+// Commodity code map for Socrata API
+const SOCRATA_CODES = {
+  'Corn':         '002602',
+  'Soybeans':     '005602',
+  'Soybean Oil':  '007601',
+  'Soybean Meal': '026603',
+  'Wheat':        '001602',
+  'KC Wheat':     '001612',
+  'MN Wheat':     '001626',
+  'Cotton':       '033661',
+  'Coffee':       '083731',
+  'Sugar':        '080732',
+  'Cocoa':        '073732',
+  'Canola':       null,   // not in CFTC (Canadian market)
+  'Rough Rice':   '039601',
+};
+
+// Fields we need from the API
+const ON_FIELDS = [
+  'report_date_as_yyyy_mm_dd',
+  'cftc_contract_market_code',
+  'prod_merc_positions_long_old',
+  'prod_merc_positions_short_old',
+  'prod_merc_positions_long_other',
+  'prod_merc_positions_short_other',
+  'prod_merc_positions_spread_old',
+  'prod_merc_positions_spread_other',
+  'm_money_positions_long_old',
+  'm_money_positions_short_old',
+  'm_money_positions_long_other',
+  'm_money_positions_short_other',
+  'm_money_positions_spread_old',
+  'm_money_positions_spread_other',
+  'open_interest_old',
+  'open_interest_other',
+  'open_interest_all',
+].join(',');
+
+let onProdChart=null, onMmChart=null;
+let onCache={};  // cache per commodity to avoid repeated fetches
+
+async function fetchOldNew(){
+  const comm=document.getElementById('comm').value;
+  document.getElementById('on-comm-name').textContent=comm;
+  document.getElementById('on-status').textContent='Fetching…';
+  document.getElementById('on-report-date').textContent='loading…';
+
+  const code=SOCRATA_CODES[comm];
+  if(!code){
+    document.getElementById('on-status').textContent='Not available';
+    document.getElementById('on-table').innerHTML=`<div style="color:var(--muted);font-size:13px;padding:1rem 0">${comm} is not tracked in the CFTC disaggregated report with an old/new crop split (it trades on a non-US exchange). Use the Net positioning and Calendar spread signal tabs for this commodity.</div>`;
+    ['on-oi-split','on-signal','on-prod-chart','on-mm-chart'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.parentElement.style.display='none';
+    });
+    return;
+  }
+
+  // Show all cards
+  document.querySelectorAll('#oldnew-card .card').forEach(c=>c.style.display='block');
+
+  // Use cache if available
+  if(onCache[comm]){
+    renderOldNew(comm, onCache[comm]);
+    return;
+  }
+
+  try {
+    // Fetch last 52 weeks of old/new crop data from Socrata
+    const cutoff=new Date(Date.now()-52*7*86400000).toISOString().slice(0,10);
+    const url=`https://publicreporting.cftc.gov/resource/kh3c-gbw2.json?$select=${ON_FIELDS}&$where=cftc_contract_market_code='${code}' AND report_date_as_yyyy_mm_dd>='${cutoff}T00:00:00.000'&$order=report_date_as_yyyy_mm_dd ASC&$limit=60`;
+
+    const res=await fetch(url,{headers:{'Accept':'application/json'}});
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data=await res.json();
+
+    if(!data.length) throw new Error('No data returned from API');
+
+    onCache[comm]=data;
+    renderOldNew(comm,data);
+    document.getElementById('on-status').textContent=`${data.length} weeks loaded from CFTC`;
+
+  } catch(e){
+    document.getElementById('on-status').textContent='API error: '+e.message;
+    document.getElementById('on-table').innerHTML=`
+      <div style="color:var(--muted);font-size:13px;padding:1rem 0">
+        Could not fetch data from CFTC API (${e.message}). This may be a CORS restriction from the GitHub Pages domain.
+        <br><br>
+        <strong style="color:var(--text)">Alternative:</strong> The data is visible at
+        <a href="https://www.cftc.gov/dea/options/ag_lof.htm" target="_blank" style="color:var(--accent)">cftc.gov/dea/options/ag_lof.htm</a>
+        — you can read the old/new crop split directly from there each week.
+      </div>`;
+  }
+}
+
+function n(v){return parseInt(v)||0;}
+function fmtK(v){return Math.abs(v)>=1000?(v/1000).toFixed(1)+'k':String(v);}
+
+function renderOldNew(comm, data){
+  const last=data[data.length-1];
+  const date=last.report_date_as_yyyy_mm_dd?.slice(0,10)||'';
+  document.getElementById('on-report-date').textContent=`Report date: ${date}`;
+
+  // ── Parse last row ──
+  const oiOld=n(last.open_interest_old);
+  const oiNew=n(last.open_interest_other);
+  const oiAll=n(last.open_interest_all);
+  const oiPct=oiAll>0?Math.round(oiOld/oiAll*100):0;
+
+  const prodLongOld=n(last.prod_merc_positions_long_old);
+  const prodShortOld=n(last.prod_merc_positions_short_old);
+  const prodNetOld=prodLongOld-prodShortOld;
+  const prodLongNew=n(last.prod_merc_positions_long_other);
+  const prodShortNew=n(last.prod_merc_positions_short_other);
+  const prodNetNew=prodLongNew-prodShortNew;
+  const prodSpreadOld=n(last.prod_merc_positions_spread_old);
+  const prodSpreadNew=n(last.prod_merc_positions_spread_other);
+
+  const mmLongOld=n(last.m_money_positions_long_old);
+  const mmShortOld=n(last.m_money_positions_short_old);
+  const mmNetOld=mmLongOld-mmShortOld;
+  const mmLongNew=n(last.m_money_positions_long_other);
+  const mmShortNew=n(last.m_money_positions_short_other);
+  const mmNetNew=mmLongNew-mmShortNew;
+  const mmSpreadOld=n(last.m_money_positions_spread_old);
+  const mmSpreadNew=n(last.m_money_positions_spread_other);
+  const mmSpreadAll=mmSpreadOld+mmSpreadNew;
+
+  // ── OI Split bar ──
+  const oiBar=oiAll>0?Math.round(oiOld/oiAll*100):0;
+  document.getElementById('on-oi-split').innerHTML=`
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px">
+      <span>Old crop: <strong style="color:var(--text)">${oiOld.toLocaleString()}</strong> (${oiBar}%)</span>
+      <span>New crop: <strong style="color:var(--text)">${oiNew.toLocaleString()}</strong> (${100-oiBar}%)</span>
+    </div>
+    <div style="height:12px;background:var(--bg3);border-radius:6px;overflow:hidden;display:flex">
+      <div style="width:${oiBar}%;background:#3b82f6;border-radius:6px 0 0 6px;transition:width .5s"></div>
+      <div style="width:${100-oiBar}%;background:#ef4444;border-radius:0 6px 6px 0"></div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">Blue = old crop &nbsp;·&nbsp; Red = new crop &nbsp;·&nbsp; Total OI: ${oiAll.toLocaleString()}</div>`;
+
+  // ── Breakdown table ──
+  const row=(label,old_l,old_s,old_n,new_l,new_s,new_n,old_sp,new_sp)=>`
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:.6rem .75rem;font-size:13px;font-weight:500;color:var(--text);white-space:nowrap">${label}</td>
+      <td style="padding:.6rem .75rem;font-size:12px;color:var(--muted);text-align:right">${old_l.toLocaleString()}</td>
+      <td style="padding:.6rem .75rem;font-size:12px;color:var(--muted);text-align:right">${old_s.toLocaleString()}</td>
+      <td style="padding:.6rem .75rem;font-size:13px;font-weight:500;color:${old_n>=0?'var(--green)':'var(--red)'};text-align:right">${fmt(old_n)}</td>
+      <td style="padding:.6rem .75rem;font-size:12px;color:var(--muted);text-align:right;border-left:1px solid var(--border)">${new_l.toLocaleString()}</td>
+      <td style="padding:.6rem .75rem;font-size:12px;color:var(--muted);text-align:right">${new_s.toLocaleString()}</td>
+      <td style="padding:.6rem .75rem;font-size:13px;font-weight:500;color:${new_n>=0?'var(--green)':'var(--red)'};text-align:right">${fmt(new_n)}</td>
+      <td style="padding:.6rem .75rem;font-size:12px;color:var(--muted);text-align:right;border-left:1px solid var(--border)">${old_sp?old_sp.toLocaleString():'-'}</td>
+      <td style="padding:.6rem .75rem;font-size:12px;color:var(--muted);text-align:right">${new_sp?new_sp.toLocaleString():'-'}</td>
+    </tr>`;
+
+  document.getElementById('on-table').innerHTML=`
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse">
+      <thead>
+        <tr style="background:var(--bg3)">
+          <th style="padding:.5rem .75rem;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;font-weight:600"></th>
+          <th colspan="3" style="padding:.5rem .75rem;font-size:11px;color:#3b82f6;text-align:center;font-weight:600;border-bottom:2px solid #3b82f6">OLD CROP</th>
+          <th colspan="3" style="padding:.5rem .75rem;font-size:11px;color:#ef4444;text-align:center;font-weight:600;border-bottom:2px solid #ef4444;border-left:1px solid var(--border)">NEW CROP</th>
+          <th colspan="2" style="padding:.5rem .75rem;font-size:11px;color:var(--muted);text-align:center;font-weight:600;border-left:1px solid var(--border)">SPREADING</th>
+        </tr>
+        <tr style="background:var(--bg3)">
+          <th style="padding:.4rem .75rem;font-size:10px;color:var(--muted);text-align:left">Trader group</th>
+          <th style="padding:.4rem .75rem;font-size:10px;color:var(--muted);text-align:right">Long</th>
+          <th style="padding:.4rem .75rem;font-size:10px;color:var(--muted);text-align:right">Short</th>
+          <th style="padding:.4rem .75rem;font-size:10px;color:var(--muted);text-align:right">Net</th>
+          <th style="padding:.4rem .75rem;font-size:10px;color:var(--muted);text-align:right;border-left:1px solid var(--border)">Long</th>
+          <th style="padding:.4rem .75rem;font-size:10px;color:var(--muted);text-align:right">Short</th>
+          <th style="padding:.4rem .75rem;font-size:10px;color:var(--muted);text-align:right">Net</th>
+          <th style="padding:.4rem .75rem;font-size:10px;color:var(--muted);text-align:right;border-left:1px solid var(--border)">Old</th>
+          <th style="padding:.4rem .75rem;font-size:10px;color:var(--muted);text-align:right">New</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${row('Producer/Merchant',prodLongOld,prodShortOld,prodNetOld,prodLongNew,prodShortNew,prodNetNew,prodSpreadOld,prodSpreadNew)}
+        ${row('Managed Money',mmLongOld,mmShortOld,mmNetOld,mmLongNew,mmShortNew,mmNetNew,mmSpreadOld,mmSpreadNew)}
+      </tbody>
+    </table>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:1rem">
+      <div class="metric"><div class="metric-label">Old crop OI</div><div class="metric-val">${fmtK(oiOld)}</div><div class="metric-sub">${oiBar}% of total</div></div>
+      <div class="metric"><div class="metric-label">New crop OI</div><div class="metric-val">${fmtK(oiNew)}</div><div class="metric-sub">${100-oiBar}% of total</div></div>
+      <div class="metric"><div class="metric-label">MM spreading (all)</div><div class="metric-val">${fmtK(mmSpreadAll)}</div><div class="metric-sub">calendar spread positions</div></div>
+      <div class="metric"><div class="metric-label">Prod old/new ratio</div>
+        <div class="metric-val" style="font-size:16px">${oiOld>0&&oiNew>0?Math.abs((prodNetOld/oiOld*100)).toFixed(1)+'%':'-'} / ${oiNew>0?Math.abs((prodNetNew/oiNew*100)).toFixed(1)+'%':'-'}</div>
+        <div class="metric-sub">net as % of crop OI</div></div>
+    </div>`;
+
+  // ── Spread signal from old/new ──
+  const prodOldPctOI=oiOld>0?prodNetOld/oiOld*100:0;
+  const prodNewPctOI=oiNew>0?prodNetNew/oiNew*100:0;
+  const mmOldPctOI=oiOld>0?mmNetOld/oiOld*100:0;
+  const mmNewPctOI=oiNew>0?mmNetNew/oiNew*100:0;
+
+  // Key ratio: is producer net short heavier in old or new crop as % of respective OI?
+  const prodHeavierInNew=Math.abs(prodNewPctOI)>Math.abs(prodOldPctOI);
+  const mmHeavierInOld=Math.abs(mmOldPctOI)>Math.abs(mmNewPctOI)&&mmNetOld>0;
+  const mmSpreadBuilding=mmSpreadAll>5000;
+
+  let sigColor,sigEmoji,sigLabel,sigDesc;
+  if(prodHeavierInNew && mmHeavierInOld){
+    sigColor='var(--green)'; sigEmoji='🟢';
+    sigLabel='Classic bull spread setup confirmed';
+    sigDesc=`Producers are more short in new crop (${prodNewPctOI.toFixed(1)}% of new crop OI) than old crop (${prodOldPctOI.toFixed(1)}% of old crop OI). This means producer hedging pressure is concentrated in deferred contracts — new crop is being offered. Meanwhile MM is more net long in old crop (${mmOldPctOI.toFixed(1)}% of old crop OI vs ${mmNewPctOI.toFixed(1)}% new crop). Specs are holding the nearby long while producers sell the deferred — the textbook bull spread setup. Old crop should outperform new crop on a relative basis while this positioning holds.`;
+  } else if(!prodHeavierInNew && mmHeavierInOld){
+    sigColor='var(--amber)'; sigEmoji='🟡';
+    sigLabel='Mixed — producer pressure on old crop, MM long nearby';
+    sigDesc=`Producers are more short in old crop (${prodOldPctOI.toFixed(1)}% of old crop OI) than new crop (${prodNewPctOI.toFixed(1)}% of new crop OI). Hedging pressure is on the nearby — this pressures old crop relative to new crop. However MM is still more net long in old crop which partially offsets. Watch whether MM longs can absorb the producer selling in nearby contracts or whether old crop weakens.`;
+  } else if(prodHeavierInNew && !mmHeavierInOld){
+    sigColor='var(--amber)'; sigEmoji='🟡';
+    sigLabel='New crop sold, but MM not long nearby — spread signal unclear';
+    sigDesc=`Producer hedging is concentrated in new crop (${prodNewPctOI.toFixed(1)}% of new crop OI vs ${prodOldPctOI.toFixed(1)}% old crop OI), which theoretically pressures the deferred. However MM is not positioned more heavily in old crop — they are not providing the offsetting nearby bid. Without MM support in old crop, the expected bull spread may not materialise even with producer forward selling.`;
+  } else {
+    sigColor='var(--red)'; sigEmoji='🔴';
+    sigLabel='Bear spread pressure — old crop offered relative to new';
+    sigDesc=`Producer hedging is more concentrated in old crop (${prodOldPctOI.toFixed(1)}% of old crop OI vs ${prodNewPctOI.toFixed(1)}% new crop OI). This means nearby contracts are being sold by producers — old crop under direct hedge pressure. MM is not providing significant nearby support. Full carry is likely to rebuild — old crop underperforms new crop on a spread basis.`;
+  }
+
+  const spreadNote=mmSpreadBuilding
+    ?`<div style="margin-top:.75rem;padding:.6rem .875rem;background:rgba(167,139,250,0.1);border-radius:var(--radius-sm);font-size:12px;color:#a78bfa">⚡ MM spreading positions are elevated at ${mmSpreadAll.toLocaleString()} contracts — managed money is directly trading the calendar spread. This is a high-conviction directional signal in the direction of their spread position.</div>`
+    :'';
+
+  document.getElementById('on-signal').innerHTML=`
+    <div style="display:flex;align-items:flex-start;gap:1rem;flex-wrap:wrap">
+      <div style="font-size:28px;flex-shrink:0">${sigEmoji}</div>
+      <div>
+        <div style="font-size:16px;font-weight:600;color:${sigColor};margin-bottom:6px">${sigLabel}</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6;max-width:600px">${sigDesc}</div>
+        ${spreadNote}
+      </div>
+    </div>`;
+
+  // ── Charts ──
+  const labels=data.map(d=>d.report_date_as_yyyy_mm_dd?.slice(0,10));
+  const prodNetsOld=data.map(d=>n(d.prod_merc_positions_long_old)-n(d.prod_merc_positions_short_old));
+  const prodNetsNew=data.map(d=>n(d.prod_merc_positions_long_other)-n(d.prod_merc_positions_short_other));
+  const mmNetsOld=data.map(d=>n(d.m_money_positions_long_old)-n(d.m_money_positions_short_old));
+  const mmNetsNew=data.map(d=>n(d.m_money_positions_long_other)-n(d.m_money_positions_short_other));
+  const mmSpreads=data.map(d=>n(d.m_money_positions_spread_old)+n(d.m_money_positions_spread_other));
+
+  const cOpts={responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,
+      callbacks:{label:c=>` ${c.dataset.label}: ${Math.round(c.parsed.y).toLocaleString()}`}}},
+    scales:{
+      x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{maxTicksLimit:10,font:{size:11},color:'#8892a4'}},
+      y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{font:{size:11},color:'#8892a4',
+          callback:v=>Math.abs(v)>=1000?(v/1000).toFixed(0)+'k':v}}
+    }};
+
+  if(onProdChart) onProdChart.destroy();
+  onProdChart=new Chart(document.getElementById('on-prod-chart').getContext('2d'),{
+    type:'line',data:{labels,datasets:[
+      {label:'Old crop producer net',data:prodNetsOld,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.1)',borderWidth:1.5,fill:true,tension:.3,pointRadius:2},
+      {label:'New crop producer net',data:prodNetsNew,borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,0.1)',borderWidth:1.5,fill:true,tension:.3,pointRadius:2}
+    ]},options:cOpts});
+
+  if(onMmChart) onMmChart.destroy();
+  onMmChart=new Chart(document.getElementById('on-mm-chart').getContext('2d'),{
+    type:'line',data:{labels,datasets:[
+      {label:'Old crop MM net',data:mmNetsOld,borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.1)',borderWidth:1.5,fill:true,tension:.3,pointRadius:2},
+      {label:'New crop MM net',data:mmNetsNew,borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,0.1)',borderWidth:1.5,fill:true,tension:.3,pointRadius:2},
+      {label:'MM spreading',data:mmSpreads,borderColor:'#a78bfa',backgroundColor:'transparent',borderWidth:1.5,borderDash:[4,3],tension:.3,pointRadius:2}
+    ]},options:cOpts});
 }
 
 // ── SCANNER HELPERS ───────────────────────────────────────────
