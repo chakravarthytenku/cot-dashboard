@@ -11,7 +11,7 @@ Usage:
 
 The script:
 1. Finds the most recently modified PDF in data/
-2. Extracts text from page 1 using pdftotext
+2. Extracts text from ALL pages using pdftotext
 3. Parses the commodity rows for grains, softs
 4. Appends new data rows to the RAW array in index.html
 5. Writes the updated index.html
@@ -57,9 +57,9 @@ def find_latest_pdf():
 
 
 def extract_text(pdf_path: Path) -> str:
-    """Use pdftotext to extract page 1 with layout preservation"""
+    """Use pdftotext to extract ALL pages with layout preservation"""
     result = subprocess.run(
-        ["pdftotext", "-layout", "-f", "1", "-l", "1", str(pdf_path), "-"],
+        ["pdftotext", "-layout", str(pdf_path), "-"],
         capture_output=True, text=True
     )
     if result.returncode != 0:
@@ -209,7 +209,7 @@ def main():
     print(f"\n📄 PDF found: {pdf_path.name}")
 
     # 2. Extract text
-    print("\n📝 Extracting text from PDF...")
+    print("\n📝 Extracting text from ALL pages of PDF...")
     text = extract_text(pdf_path)
 
     # 3. Parse date
