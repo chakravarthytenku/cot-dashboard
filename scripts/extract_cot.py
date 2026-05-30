@@ -70,20 +70,21 @@ def extract_text(pdf_path: Path) -> str:
 def parse_date(text: str) -> str:
     """
     Extract the week-ending date from the header line.
-    Header format: '04/28/2026 - 05/05/26'
+    Header format: '05/19/2026 - 05/26/26'
     We want the second date (week ending date).
     """
-    # Match patterns like '04/28/2026 - 05/05/26' or '04/21/2026 - 04/28/26'
+    # Match the full range: MM/DD/YYYY - MM/DD/YY capturing both dates
     match = re.search(
-        r'\d{2}/\d{2}/\d{4}\s*-\s*(\d{2})/(\d{2})/(\d{2,4})',
+        r'(\d{2})/(\d{2})/(\d{4})\s*-\s*(\d{2})/(\d{2})/(\d{2,4})',
         text
     )
     if not match:
         raise ValueError("Could not find date range in PDF header")
-    month, day, year = match.group(1), match.group(2), match.group(3)
-    # Handle 2-digit year
+    # Groups 4,5,6 are the second date (week-ending)
+    month, day, year = match.group(4), match.group(5), match.group(6)
     if len(year) == 2:
         year = "20" + year
+    print(f"  Date range found: {match.group(1)}/{match.group(2)}/{match.group(3)} -> week ending {month}/{day}/{year}")
     return f"{year}-{month}-{day}"
 
 
