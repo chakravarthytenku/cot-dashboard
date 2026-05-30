@@ -173,29 +173,43 @@ def build_js_rows(date: str, data: dict) -> str:
     return ",\n".join(lines)
 
 
-def check_already_imported(html: str, date: str) -> bool:
-    """Check if this week's data has already been imported"""
-    return f'date:"{date}"' in html
+def remove_existing_week(html: str, date: str) -> tuple[str, bool]:
+    """
+    Remove any existing rows for this date from the RAW array,
+    including the comment header line. Returns (updated_html, was_found).
+    """
+    if f'date:"{date}"' not in html:
+        return html, False
+
+    lines = html.split('\n')
+    filtered = []
+    skip_next_comma = False
+
+    for i, line in enumerate(lines):
+        # Skip the comment header for this week
+        if f'// ── Week ending {date} ──' in line:
+            skip_next_comma = False
+            continue
+        # Skip any data row for this date
+        if f'date:"{date}"' in line:
+            # Also remove a trailing comma on the previous kept line if present
+            if filtered and filtered[-1].rstrip().endswith(','):
+                filtered[-1] = filtered[-1].rstrip()[:-1]
+            continue
+        filtered.append(line)
+
+    return '\n'.join(filtered), True
 
 
 def inject_into_html(html: str, new_rows: str) -> str:
     """
     Inject new JS rows before the closing ]; of the RAW array.
-    Finds the last data row and appends after it.
     """
-    # Find the closing ]; of the RAW array
-    marker = "];"
-    # We need the RAW array's closing ]; specifically
-    # Find it by looking for the pattern near the end of the array
     raw_end = html.rfind("\n];")
     if raw_end == -1:
         raise ValueError("Could not find end of RAW array (];) in index.html")
-    
-    # Find the last data row before ];
-    # Insert new rows before the ];
-    insert_pos = raw_end  # position of \n];
-    
-    updated = html[:insert_pos] + ",\n" + new_rows + html[insert_pos:]
+
+    updated = html[:raw_end] + ",\n" + new_rows + html[raw_end:]
     return updated
 
 
@@ -221,11 +235,12 @@ def main():
         raise FileNotFoundError(f"index.html not found at {HTML_FILE}")
     html = HTML_FILE.read_text(encoding="utf-8")
 
-    # 5. Check if already imported
-    if check_already_imported(html, week_date):
-        print(f"\n⚠️  Week {week_date} already exists in index.html — skipping.")
-        print("   Remove the existing rows manually if you want to re-import.")
-        sys.exit(0)
+    # 5. Remove existing rows for this week if present (allows re-import)
+    html, was_existing = remove_existing_week(html, week_date)
+    if was_existing:
+        print(f"\n♻️  Existing rows for {week_date} removed — will re-import fresh.")
+    else:
+        print(f"\n✨ No existing entry for {week_date} — fresh import.")
 
     # 6. Parse commodity data
     print(f"\n📊 Parsing commodity data...")
