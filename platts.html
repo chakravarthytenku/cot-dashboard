@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Platts Daily Grains & Oilseeds</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0d0d0d;color:#f0ece0;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+  /* ── LOGIN ── */
+  #login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh}
+  .login-box{background:#141414;border:1px solid #222;border-radius:14px;padding:40px 44px;width:340px;text-align:center}
+  .login-box h2{font-size:18px;font-weight:700;margin-bottom:4px}
+  .login-box p{font-size:11px;color:#444;margin-bottom:28px}
+  .login-box input{width:100%;background:#0d0d0d;border:1px solid #2a2a2a;border-radius:7px;padding:10px 12px;color:#f0ece0;font-size:13px;margin-bottom:12px;outline:none}
+  .login-box input:focus{border-color:#444}
+  .login-box button{width:100%;background:#c8a96e;border:none;border-radius:7px;padding:11px;color:#0d0d0d;font-weight:700;font-size:13px;cursor:pointer;margin-top:4px}
+  .login-box button:hover{background:#d4b87a}
+  .login-error{color:#e07a5f;font-size:11px;margin-top:8px;min-height:16px}
+  /* ── APP ── */
+  #app{display:none}
+  /* ── HEADER ── */
+  .header{border-bottom:1px solid #1a1a1a;padding:18px 24px 12px}
+  .header-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+  .header-eyebrow{font-size:9px;color:#333;letter-spacing:.18em;text-transform:uppercase;margin-bottom:5px}
+  .header-title{font-size:20px;font-weight:700}
+  .header-meta{text-align:right;font-size:9px;color:#2a2a2a;line-height:1.7}
+  .header-meta .latest{font-size:13px;font-weight:600;color:#999}
+  .header-nav{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+  .tab-btn{padding:5px 13px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:500;transition:all .12s;background:#181818;color:#666}
+  .tab-btn.active{color:#0d0d0d}
+  .view-btn{padding:5px 11px;border-radius:6px;border:1px solid #222;cursor:pointer;font-size:11px;background:transparent;color:#444}
+  .view-btn.active{background:#1e1e1e;color:#bbb}
+  .nav-spacer{flex:1}
+  .nav-link{padding:5px 11px;border-radius:6px;border:1px solid #2a2a2a;cursor:pointer;font-size:11px;background:transparent;color:#555;text-decoration:none}
+  .nav-link:hover{color:#888;border-color:#444}
+  .logout-btn{padding:5px 11px;border-radius:6px;border:1px solid #222;cursor:pointer;font-size:11px;background:transparent;color:#444}
+  .logout-btn:hover{color:#e07a5f;border-color:#e07a5f44}
+  /* ── CONTENT ── */
+  .content{padding:18px 24px}
+  .section-header{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+  .section-bar{width:3px;height:16px;border-radius:2px}
+  .section-label{font-size:14px;font-weight:600}
+  .section-meta{font-size:11px;color:#333}
+  /* ── KPI GRID ── */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+  .kpi-card{background:#141414;border:1px solid #222;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+  .kpi-sym{font-size:9px;color:#3a3a3a;font-family:monospace}
+  .kpi-unit-badge{font-size:9px;color:#2e2e2e;background:#1c1c1c;padding:2px 5px;border-radius:3px}
+  .kpi-label{font-size:12px;color:#666;line-height:1.3}
+  .kpi-value{font-size:20px;font-weight:700;font-family:monospace;color:#f0ece0}
+  .kpi-value.null{color:#333}
+  .kpi-footer{display:flex;align-items:center;gap:6px}
+  .badge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px}
+  .badge.up{background:rgba(124,185,142,.18);color:#4caf7d}
+  .badge.down{background:rgba(224,122,95,.18);color:#e07a5f}
+  .badge.flat{background:rgba(255,255,255,.04);color:#555}
+  .badge.na{color:#444}
+  .kpi-pct{font-size:10px}
+  .kpi-spark{margin-top:2px}
+  /* ── CHART GRID ── */
+  .chart-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px}
+  .chart-card{background:#141414;border:1px solid #222;border-radius:10px;padding:14px 16px 10px}
+  .chart-header{display:flex;justify-content:space-between;margin-bottom:10px}
+  .chart-title{font-size:11px;color:#888}
+  .chart-sym{font-size:9px;color:#3a3a3a;font-family:monospace;margin-right:4px}
+  .chart-unit{font-size:9px;color:#333}
+  .chart-wrap{position:relative;height:130px}
+  /* ── TABLE ── */
+  .table-section{margin-top:28px;border-top:1px solid #1a1a1a;padding-top:20px}
+  .table-eyebrow{font-size:9px;color:#2a2a2a;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px}
+  .table-scroll{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  th{text-align:right;padding:5px 10px;color:#3a3a3a;font-weight:500;white-space:nowrap}
+  th:first-child,th:nth-child(2){text-align:left}
+  th:nth-child(3){text-align:center}
+  td{padding:6px 10px;font-family:monospace;text-align:right;white-space:nowrap}
+  td:first-child{text-align:left;font-size:9px;color:#3a3a3a}
+  td:nth-child(2){text-align:left;font-family:inherit;color:#666;font-size:11px}
+  td:nth-child(3){text-align:center;font-size:9px;color:#2e2e2e}
+  tr{border-bottom:1px solid #141414}
+  tr:nth-child(even){background:#0f0f0f}
+  .val-null{color:#282828}
+  .val-latest-up{color:#4caf7d;font-weight:600}
+  .val-latest-down{color:#e07a5f;font-weight:600}
+  .val-latest-flat{color:#ccc;font-weight:600}
+  .val-old{color:#444}
+  @media(max-width:600px){
+    .header-top{flex-direction:column;gap:8px}
+    .header-meta{text-align:left}
+    .kpi-grid{grid-template-columns:1fr 1fr}
+    .chart-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ LOGIN ══════════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div style="font-size:9px;color:#3a3a3a;letter-spacing:.18em;text-transform:uppercase;margin-bottom:10px">S&P Global Platts</div>
+    <h2>Grains & Oilseeds</h2>
+    <p>Price Dashboard</p>
+    <input id="u" type="text" placeholder="Username" autocomplete="username"/>
+    <input id="p" type="password" placeholder="Password" autocomplete="current-password"/>
+    <button onclick="doLogin()">Sign In</button>
+    <div class="login-error" id="login-err"></div>
+  </div>
+</div>
+
+<!-- ══════════════ APP ══════════════ -->
+<div id="app">
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="header-eyebrow">S&P Global Platts · Daily Grains &amp; Oilseeds</div>
+        <div class="header-title">Price Dashboard</div>
+      </div>
+      <div class="header-meta">
+        <div>LATEST</div>
+        <div class="latest" id="hd-latest"></div>
+        <div id="hd-prev"></div>
+        <div id="hd-count"></div>
+      </div>
+    </div>
+    <div class="header-nav" id="tab-nav"></div>
+  </div>
+  <div class="content" id="content"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════
+const USERS = { 'trader': 'cot2026', 'admin': 'admin123' };
+
+function doLogin() {
+  const u = document.getElementById('u').value.trim();
+  const p = document.getElementById('p').value;
+  if (USERS[u] && USERS[u] === p) {
+    sessionStorage.setItem('platts_auth', '1');
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    init();
+  } else {
+    document.getElementById('login-err').textContent = 'Invalid credentials.';
+  }
+}
+document.getElementById('p').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+if (sessionStorage.getItem('platts_auth')) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+}
+
+// ═══════════════════════════════════════════════════════
+// DATA  ← update only this block each day
+// ═══════════════════════════════════════════════════════
+const DATA = [
+  { date:"19-May", WAUSA00:285.00,WASWA00:276.00,WRBSD00:241.00,WUBSA00:240.00,ACVBA00:247.00,ACVBB00:245.00,AMARA00:253.00,ACPTA00:233.95,ACQTB00:236.27,AWHCD00:279.81, WCINV00:278.00,CNEBA00:223.90,CUBSU00:240.00,ACVBC00:245.00,CESEV00:263.81,ARGCA00:211.52,ARGCB00:62.00,ABCSA00:228.53,ABCSB00:99.00,WCNOA00:219.00,WCNOE00:81.00, SYBAB00:508.26,SYBAA00:165.00,SYBBB00:454.72,SYBBA00:28.00,SYBBD00:452.89,SYBBC00:23.00,SYBBI00:479.32,SYBBJ00:95.00,CSGCD00:12.99,ABSCA00:51.38, EUPMR00:437.00,SMESD00:438.04,SYMAA00:359.68,SYMAB00:-6.00,SYMBA00:351.96,SYMBB00:-13.00, ACPOD00:1220.00,SFWBL00:1379.00,ASEEG00:1139.00,SYOAA00:1164.92,SYOAB00:-2260.00,SYOBA00:1189.17,SYOBB00:-2150.00 },
+  { date:"20-May", WAUSA00:285.00,WASWA00:276.00,WRBSD00:244.00,WUBSA00:238.00,ACVBA00:247.00,ACVBB00:245.00,AMARA00:253.00,ACPTA00:239.18,ACQTB00:241.51,AWHCD00:279.07, WCINV00:278.00,CNEBA00:224.65,CUBSU00:240.00,ACVBC00:245.00,CESEV00:264.47,ARGCA00:206.99,ARGCB00:60.00,ABCSA00:224.99,ABCSB00:99.00,WCNOA00:215.25,WCNOE00:81.00, SYBAB00:499.44,SYBAA00:155.00,SYBBB00:455.92,SYBBA00:41.00,SYBBD00:454.08,SYBBC00:36.00,SYBBI00:476.47,SYBBJ00:97.00,CSGCD00:22.51,ABSCA00:47.79, EUPMR00:437.00,SMESD00:438.55,SYMAA00:360.34,SYMAB00:-4.00,SYMBA00:352.63,SYMBB00:-11.00, ACPOD00:1220.00,SFWBL00:1379.00,ASEEG00:1139.00,SYOAA00:1165.36,SYOAB00:-2180.00,SYOBA00:1183.00,SYOBB00:-2100.00 },
+  { date:"21-May", WAUSA00:285.00,WASWA00:276.00,WRBSD00:244.00,WUBSA00:238.00,ACVBA00:247.00,ACVBB00:245.00,AMARA00:253.00,ACPTA00:240.39,ACQTB00:242.71,AWHCD00:277.51, WCINV00:274.00,CNEBA00:223.49,CUBSU00:240.00,ACVBC00:245.00,CESEV00:263.56,ARGCA00:205.61,ARGCB00:60.00,ABCSA00:223.41,ABCSB00:99.00,WCNOA00:213.10,WCNOE00:79.00, SYBAB00:500.54,SYBAA00:164.00,SYBBB00:456.10,SYBBA00:47.00,SYBBD00:454.27,SYBBC00:42.00,SYBBI00:474.45,SYBBJ00:97.00,CSGCD00:15.26,ABSCA00:46.77, EUPMR00:423.00,SMESD00:436.75,SYMAA00:357.59,SYMAB00:-4.00,SYMBA00:352.07,SYMBB00:-9.00, ACPOD00:1195.00,SFWBL00:1379.00,ASEEG00:1140.00,SYOAA00:1158.97,SYOAB00:-2130.00,SYOBA00:1161.18,SYOBB00:-2120.00 },
+  { date:"22-May", WAUSA00:284.00,WASWA00:276.00,WRBSD00:245.00,WUBSA00:238.00,ACVBA00:246.00,ACVBB00:244.00,AMARA00:253.00,ACPTA00:238.44,ACQTB00:240.76,AWHCD00:278.70, WCINV00:272.50,CNEBA00:223.68,CUBSU00:240.00,ACVBC00:245.00,CESEV00:266.87,ARGCA00:205.61,ARGCB00:59.00,ABCSA00:223.51,ABCSB00:98.00,WCNOA00:216.25,WCNOE00:86.00, SYBAB00:499.26,SYBAA00:160.00,SYBBB00:456.93,SYBBA00:47.00,SYBBD00:455.83,SYBBC00:44.00,SYBBI00:475.28,SYBBJ00:97.00,CSGCD00:15.18,ABSCA00:49.56, EUPMR00:424.00,SMESD00:433.95,SYMAA00:362.55,SYMAB00:-3.00,SYMBA00:358.14,SYMBB00:-7.00, ACPOD00:1200.00,SFWBL00:1379.00,ASEEG00:1140.00,SYOAA00:1152.58,SYOAB00:-2170.00,SYOBA00:1159.19,SYOBB00:-2140.00 },
+  { date:"25-May", WAUSA00:286.00,WASWA00:278.00,WRBSD00:null,WUBSA00:null,ACVBA00:null,ACVBB00:null,AMARA00:null,ACPTA00:null,ACQTB00:null,AWHCD00:null, WCINV00:272.50,CNEBA00:222.43,CUBSU00:null,ACVBC00:null,CESEV00:null,ARGCA00:205.61,ARGCB00:59.00,ABCSA00:223.51,ABCSB00:98.00,WCNOA00:null,WCNOE00:null, SYBAB00:498.70,SYBAA00:161.00,SYBBB00:456.93,SYBBA00:47.00,SYBBD00:455.83,SYBBC00:44.00,SYBBI00:null,SYBBJ00:null,CSGCD00:12.57,ABSCA00:49.56, EUPMR00:null,SMESD00:null,SYMAA00:362.55,SYMAB00:-3.00,SYMBA00:358.14,SYMBB00:-7.00, ACPOD00:1190.00,SFWBL00:1379.00,ASEEG00:null,SYOAA00:1152.58,SYOAB00:-2170.00,SYOBA00:1159.19,SYOBB00:-2140.00 },
+  { date:"26-May", WAUSA00:287.00,WASWA00:279.00,WRBSD00:245.00,WUBSA00:238.00,ACVBA00:246.00,ACVBB00:244.00,AMARA00:253.00,ACPTA00:238.81,ACQTB00:241.43,AWHCD00:279.53, WCINV00:272.50,CNEBA00:222.43,CUBSU00:240.00,ACVBC00:245.00,CESEV00:267.28,ARGCA00:204.53,ARGCB00:62.00,ABCSA00:222.13,ABCSB00:100.00,WCNOA00:213.60,WCNOE00:85.00, SYBAB00:497.42,SYBAA00:165.00,SYBBB00:453.07,SYBBA00:47.00,SYBBD00:452.70,SYBBC00:46.00,SYBBI00:471.79,SYBBJ00:98.00,CSGCD00:13.33,ABSCA00:51.92, EUPMR00:424.00,SMESD00:434.04,SYMAA00:358.91,SYMAB00:-3.00,SYMBA00:355.05,SYMBB00:-6.50, ACPOD00:1190.00,SFWBL00:1379.00,ASEEG00:1140.00,SYOAA00:1160.96,SYOAB00:-2170.00,SYOBA00:1167.57,SYOBB00:-2140.00 },
+  { date:"27-May", WAUSA00:null,WASWA00:null,WRBSD00:245.00,WUBSA00:237.50,ACVBA00:245.00,ACVBB00:243.00,AMARA00:251.00,ACPTA00:234.43,ACQTB00:237.04,AWHCD00:273.65, WCINV00:null,CNEBA00:null,CUBSU00:240.00,ACVBC00:244.00,CESEV00:267.00,ARGCA00:202.56,ARGCB00:62.00,ABCSA00:220.36,ABCSB00:100.00,WCNOA00:211.20,WCNOE00:84.00, SYBAB00:null,SYBAA00:null,SYBBB00:454.27,SYBBA00:51.00,SYBBD00:452.06,SYBBC00:45.00,SYBBI00:471.51,SYBBJ00:98.00,CSGCD00:null,ABSCA00:51.70, EUPMR00:425.00,SMESD00:431.62,SYMAA00:360.01,SYMAB00:-4.00,SYMBA00:355.60,SYMBB00:-8.00, ACPOD00:1190.00,SFWBL00:1379.00,ASEEG00:1140.00,SYOAA00:1158.75,SYOAB00:-2270.00,SYOBA00:1160.96,SYOBB00:-2260.00 },
+  { date:"28-May", WAUSA00:285.00,WASWA00:278.00,WRBSD00:245.00,WUBSA00:237.00,ACVBA00:245.00,ACVBB00:243.00,AMARA00:251.00,ACPTA00:233.35,ACQTB00:235.97,AWHCD00:272.36, WCINV00:269.00,CNEBA00:223.54,CUBSU00:238.50,ACVBC00:243.50,CESEV00:267.44,ARGCA00:203.84,ARGCB00:62.00,ABCSA00:223.31,ABCSB00:103.00,WCNOA00:212.50,WCNOE00:84.00, SYBAB00:498.70,SYBAA00:165.00,SYBBB00:455.83,SYBBA00:46.00,SYBBD00:453.62,SYBBC00:40.00,SYBBI00:475.65,SYBBJ00:100.00,CSGCD00:18.43,ABSCA00:56.33, EUPMR00:425.00,SMESD00:432.33,SYMAA00:362.77,SYMAB00:-5.00,SYMBA00:359.46,SYMBB00:-8.00, ACPOD00:1195.00,SFWBL00:1379.00,ASEEG00:1140.00,SYOAA00:1172.86,SYOAB00:-2350.00,SYOBA00:1177.27,SYOBB00:-2330.00 },
+  { date:"29-May", WAUSA00:284.00,WASWA00:276.00,WRBSD00:245.00,WUBSA00:237.00,ACVBA00:245.00,ACVBB00:243.00,AMARA00:251.00,ACPTA00:231.18,ACQTB00:233.81,AWHCD00:271.08, WCINV00:270.00,CNEBA00:221.58,CUBSU00:238.50,ACVBC00:243.50,CESEV00:267.96,ARGCA00:200.29,ARGCB00:62.00,ABCSA00:219.97,ABCSB00:103.00,WCNOA00:207.00,WCNOE00:79.00, SYBAB00:501.00,SYBAA00:165.00,SYBBB00:456.29,SYBBA00:55.00,SYBBD00:454.08,SYBBC00:49.00,SYBBI00:472.80,SYBBJ00:100.00,CSGCD00:15.79,ABSCA00:52.26, EUPMR00:426.00,SMESD00:433.18,SYMAA00:355.82,SYMAB00:-7.00,SYMBA00:355.27,SYMBB00:-7.50, ACPOD00:1195.00,SFWBL00:1379.00,ASEEG00:1145.00,SYOAA00:1173.30,SYOAB00:-2450.00,SYOBA00:1175.51,SYOBB00:-2440.00 },
+  { date:"01-Jun", WAUSA00:null,WASWA00:null,WRBSD00:245.00,WUBSA00:236.00,ACVBA00:245.00,ACVBB00:243.00,AMARA00:251.00,ACPTA00:230.70,ACQTB00:232.73,AWHCD00:266.76, WCINV00:null,CNEBA00:null,CUBSU00:238.50,ACVBC00:243.50,CESEV00:266.72,ARGCA00:200.39,ARGCB00:65.00,ABCSA00:219.57,ABCSB00:105.00,WCNOA00:205.90,WCNOE00:79.00, SYBAB00:null,SYBAA00:null,SYBBB00:454.45,SYBBA00:56.00,SYBBD00:452.61,SYBBC00:51.00,SYBBI00:470.59,SYBBJ00:100.00,CSGCD00:null,ABSCA00:52.48, EUPMR00:424.00,SMESD00:431.18,SYMAA00:351.63,SYMAB00:-7.50,SYMBA00:351.08,SYMBB00:-8.00, ACPOD00:1195.00,SFWBL00:1379.00,ASEEG00:1149.00,SYOAA00:1181.46,SYOAB00:-2550.00,SYOBA00:1185.87,SYOBB00:-2530.00 },
+  // @@END_DATA@@
+];
+
+// ═══════════════════════════════════════════════════════
+// TABS CONFIG
+// ═══════════════════════════════════════════════════════
+const TABS = [
+  { id:"wheat", label:"Wheat", color:"#c8a96e", metrics:[
+    {sym:"WAUSA00",label:"FOB Australia APW",unit:"$/mt"},
+    {sym:"WASWA00",label:"FOB Australia ASW",unit:"$/mt"},
+    {sym:"WRBSD00",label:"FOB Black Sea Russia 12.5%",unit:"$/mt"},
+    {sym:"WUBSA00",label:"FOB Black Sea Ukraine 11.5%",unit:"$/mt"},
+    {sym:"ACVBA00",label:"FOB CVB 12.5%",unit:"$/mt"},
+    {sym:"ACVBB00",label:"FOB CVB 11.5%",unit:"$/mt"},
+    {sym:"AMARA00",label:"CIF Marmara 12.5%",unit:"$/mt"},
+    {sym:"ACPTA00",label:"CPT EU Rouen 11%",unit:"$/mt"},
+    {sym:"ACQTB00",label:"FOB EU Rouen 11%",unit:"$/mt"},
+    {sym:"AWHCD00",label:"FOB Vancouver CWRS 13.5% (30-45d)",unit:"$/mt"},
+  ]},
+  { id:"corn", label:"Corn", color:"#e8c547", metrics:[
+    {sym:"WCINV00",label:"CFR North East Asia",unit:"$/mt"},
+    {sym:"CNEBA00",label:"CFR NE Asia basis",unit:"¢/bu"},
+    {sym:"CUBSU00",label:"FOB Black Sea Ukraine",unit:"$/mt"},
+    {sym:"ACVBC00",label:"FOB CVB",unit:"$/mt"},
+    {sym:"CESEV00",label:"EXW Spain",unit:"$/mt"},
+    {sym:"ARGCA00",label:"FOB Up River Argentina (Jul)",unit:"$/mt"},
+    {sym:"ARGCB00",label:"FOB Up River Argentina basis",unit:"¢/bu"},
+    {sym:"ABCSA00",label:"FOB Santos Brazil (Aug)",unit:"$/mt"},
+    {sym:"ABCSB00",label:"FOB Santos Brazil basis",unit:"¢/bu"},
+    {sym:"WCNOA00",label:"CIF New Orleans",unit:"$/mt"},
+    {sym:"WCNOE00",label:"CIF New Orleans basis",unit:"¢/bu"},
+  ]},
+  { id:"oilseeds", label:"Oilseeds", color:"#7cb98e", metrics:[
+    {sym:"SYBAB00",label:"SOYBEX CFR China (Jul)",unit:"$/mt"},
+    {sym:"SYBAA00",label:"Soybeans CFR China basis",unit:"¢/bu"},
+    {sym:"SYBBB00",label:"SOYBEX FOB Santos (Jul)",unit:"$/mt"},
+    {sym:"SYBBA00",label:"FOB Santos basis",unit:"¢/bu"},
+    {sym:"SYBBD00",label:"SOYBEX FOB Paranagua (Jul)",unit:"$/mt"},
+    {sym:"SYBBC00",label:"FOB Paranagua basis",unit:"¢/bu"},
+    {sym:"SYBBI00",label:"SOYBEX FOB New Orleans (Jul)",unit:"$/mt"},
+    {sym:"SYBBJ00",label:"FOB New Orleans basis",unit:"¢/bu"},
+    {sym:"CSGCD00",label:"China soybean crush margin",unit:"$/mt"},
+    {sym:"ABSCA00",label:"Brazil crush spread FOB Paranagua",unit:"$/mt"},
+  ]},
+  { id:"feed", label:"Animal Feed", color:"#e07a5f", metrics:[
+    {sym:"EUPMR00",label:"Soybean meal FOB Netherlands",unit:"$/mt"},
+    {sym:"SMESD00",label:"Soybean meal EXW Spain",unit:"$/mt"},
+    {sym:"SYMAA00",label:"Soybean meal FOB Up River Argentina (Jul)",unit:"$/mt"},
+    {sym:"SYMAB00",label:"FOB Up River Argentina basis",unit:"$/st"},
+    {sym:"SYMBA00",label:"Soybean meal FOB Paranagua Brazil (Jul)",unit:"$/mt"},
+    {sym:"SYMBB00",label:"FOB Paranagua Brazil basis",unit:"$/st"},
+  ]},
+  { id:"vegoils", label:"Vegetable Oils", color:"#81b3d2", metrics:[
+    {sym:"ACPOD00",label:"Crude palm oil FOB Indonesia (Jun)",unit:"$/mt"},
+    {sym:"SFWBL00",label:"Sunflower oil FOB Black Sea Ukraine",unit:"$/mt"},
+    {sym:"ASEEG00",label:"Rapeseed oil FOB Dutch Mills (Front Run)",unit:"Eur/mt"},
+    {sym:"SYOAA00",label:"Soybean oil FOB Up River Argentina",unit:"$/mt"},
+    {sym:"SYOAB00",label:"FOB Up River Argentina basis",unit:"pts/lb"},
+    {sym:"SYOBA00",label:"Soybean oil FOB Paranagua Brazil",unit:"$/mt"},
+    {sym:"SYOBB00",label:"FOB Paranagua Brazil basis",unit:"pts/lb"},
+  ]},
+];
+
+// ═══════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════
+const fmt = v => (v === null || v === undefined) ? '—'
+  : v.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+function fillForward(sym) {
+  let last = null;
+  return DATA.map(r => {
+    const v = r[sym];
+    if (v !== null && v !== undefined) last = v;
+    return { date: r.date, v: last };
+  });
+}
+
+function getLatestTwo(sym) {
+  const vals = DATA.map(d => d[sym]).filter(v => v !== null && v !== undefined);
+  if (vals.length < 2) return [vals[vals.length-1] ?? null, null];
+  return [vals[vals.length-1], vals[vals.length-2]];
+}
+
+function delta(sym) {
+  const [a, b] = getLatestTwo(sym);
+  return (a !== null && b !== null) ? a - b : null;
+}
+
+function pct(sym) {
+  const [a, b] = getLatestTwo(sym);
+  if (a === null || b === null || b === 0) return null;
+  return ((a - b) / Math.abs(b)) * 100;
+}
+
+function badgeHTML(d) {
+  if (d === null) return `<span class="badge na">—</span>`;
+  if (d === 0)    return `<span class="badge flat">—</span>`;
+  if (d > 0)      return `<span class="badge up">▲ ${Math.abs(d).toFixed(2)}</span>`;
+  return              `<span class="badge down">▼ ${Math.abs(d).toFixed(2)}</span>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// CHART REGISTRY  (destroy before redraw)
+// ═══════════════════════════════════════════════════════
+const _charts = {};
+function destroyChart(id) { if (_charts[id]) { _charts[id].destroy(); delete _charts[id]; } }
+function destroyAll() { Object.keys(_charts).forEach(destroyChart); }
+
+function makeChart(canvasId, labels, values, color, isSmall) {
+  destroyChart(canvasId);
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  const min = Math.min(...values), max = Math.max(...values), pad = (max-min)*0.15||1;
+  _charts[canvasId] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        borderColor: color,
+        borderWidth: isSmall ? 1.5 : 2,
+        pointBackgroundColor: isSmall ? 'transparent' : color,
+        pointRadius: isSmall ? 0 : 3,
+        pointHoverRadius: isSmall ? 0 : 4,
+        tension: 0.3,
+        fill: false,
+      }]
+    },
+    options: {
+      animation: false,
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: isSmall ? { enabled: false } : {
+          backgroundColor: '#1a1a1a',
+          borderColor: '#333',
+          borderWidth: 1,
+          titleColor: '#888',
+          bodyColor: color,
+          callbacks: { label: ctx => fmt(ctx.parsed.y) }
+        }
+      },
+      scales: {
+        x: isSmall ? { display: false } : {
+          ticks: { color:'#444', font:{size:10} },
+          grid: { color:'#1a1a1a' },
+          border: { display:false }
+        },
+        y: {
+          display: !isSmall,
+          min: min - pad,
+          max: max + pad,
+          ticks: { color:'#444', font:{size:10}, maxTicksLimit:5,
+            callback: v => v.toLocaleString('en-US',{maximumFractionDigits:1}) },
+          grid: { color:'#1a1a1a' },
+          border: { display:false }
+        }
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let activeTab = 'wheat';
+let activeView = 'cards';
+
+// ═══════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════
+function init() {
+  const last = DATA[DATA.length-1];
+  const prev = DATA[DATA.length-2];
+  document.getElementById('hd-latest').textContent = last.date;
+  document.getElementById('hd-prev').textContent = 'prev: ' + (prev ? prev.date : '—');
+  document.getElementById('hd-count').textContent = DATA.length + ' days loaded';
+  renderNav();
+  renderContent();
+}
+
+function renderNav() {
+  const nav = document.getElementById('tab-nav');
+  nav.innerHTML = TABS.map(t => `
+    <button class="tab-btn${t.id===activeTab?' active':''}"
+      style="${t.id===activeTab?`background:${t.color}`:''}; "
+      onclick="switchTab('${t.id}')">${t.label}</button>
+  `).join('') +
+  `<div class="nav-spacer"></div>
+   <button class="view-btn${activeView==='cards'?' active':''}" onclick="switchView('cards')">KPI Cards</button>
+   <button class="view-btn${activeView==='charts'?' active':''}" onclick="switchView('charts')">Trend Charts</button>
+   <a href="index.html" class="nav-link">← COT Dashboard</a>
+   <button class="logout-btn" onclick="logout()">Sign out</button>`;
+}
+
+function switchTab(id) { activeTab=id; destroyAll(); renderNav(); renderContent(); }
+function switchView(v) { activeView=v; destroyAll(); renderNav(); renderContent(); }
+function logout() { sessionStorage.removeItem('platts_auth'); location.reload(); }
+
+function renderContent() {
+  const tab = TABS.find(t => t.id === activeTab);
+  const content = document.getElementById('content');
+  content.innerHTML = `
+    <div class="section-header">
+      <div class="section-bar" style="background:${tab.color}"></div>
+      <span class="section-label" style="color:${tab.color}">${tab.label}</span>
+      <span class="section-meta">· ${tab.metrics.length} metrics · ${DATA.length} days</span>
+    </div>
+    <div id="main-view"></div>
+    ${renderTable(tab)}
+  `;
+
+  if (activeView === 'cards') renderCards(tab);
+  else renderCharts(tab);
+}
+
+function renderCards(tab) {
+  const view = document.getElementById('main-view');
+  view.className = 'kpi-grid';
+  view.innerHTML = tab.metrics.map((m, mi) => {
+    const latest = DATA[DATA.length-1][m.sym];
+    const d = delta(m.sym);
+    const p = pct(m.sym);
+    const pColor = p === null ? '#3a3a3a' : p > 0 ? '#4caf7d' : p < 0 ? '#e07a5f' : '#555';
+    const pStr = p === null ? '' : `<span class="kpi-pct" style="color:${pColor}">${p>0?'+':''}${p.toFixed(2)}%</span>`;
+    return `
+      <div class="kpi-card">
+        <div style="display:flex;justify-content:space-between">
+          <span class="kpi-sym">${m.sym}</span>
+          <span class="kpi-unit-badge">${m.unit}</span>
+        </div>
+        <div class="kpi-label">${m.label}</div>
+        <div class="kpi-value${latest===null?' null':''}">${latest===null?'N/A':fmt(latest)}</div>
+        <div class="kpi-footer">${badgeHTML(d)} ${pStr}</div>
+        <div class="kpi-spark"><canvas id="spark-${mi}-${m.sym}" height="36"></canvas></div>
+      </div>`;
+  }).join('');
+
+  // draw sparklines after DOM is ready
+  requestAnimationFrame(() => {
+    tab.metrics.forEach((m, mi) => {
+      const cd = fillForward(m.sym).filter(r => r.v !== null);
+      if (cd.length < 2) return;
+      makeChart(`spark-${mi}-${m.sym}`, cd.map(r=>r.date), cd.map(r=>r.v), tab.color, true);
+    });
+  });
+}
+
+function renderCharts(tab) {
+  const view = document.getElementById('main-view');
+  view.className = 'chart-grid';
+  view.innerHTML = tab.metrics.map((m, mi) => {
+    const cd = fillForward(m.sym).filter(r => r.v !== null);
+    if (!cd.length) return '';
+    return `
+      <div class="chart-card">
+        <div class="chart-header">
+          <span class="chart-title"><span class="chart-sym">${m.sym}</span>${m.label}</span>
+          <span class="chart-unit">${m.unit}</span>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-${mi}-${m.sym}"></canvas></div>
+      </div>`;
+  }).join('');
+
+  requestAnimationFrame(() => {
+    tab.metrics.forEach((m, mi) => {
+      const cd = fillForward(m.sym).filter(r => r.v !== null);
+      if (cd.length < 2) return;
+      makeChart(`chart-${mi}-${m.sym}`, cd.map(r=>r.date), cd.map(r=>r.v), tab.color, false);
+    });
+  });
+}
+
+function renderTable(tab) {
+  const last = DATA.length - 1;
+  const headers = DATA.map(d => `<th>${d.date}</th>`).join('');
+  const rows = tab.metrics.map((m, i) => {
+    const d = delta(m.sym), p = pct(m.sym);
+    const isUp = d !== null && d > 0, isDown = d !== null && d < 0;
+    const cells = DATA.map((row, ri) => {
+      const v = row[m.sym];
+      let cls = 'val-old';
+      if (v === null) cls = 'val-null';
+      else if (ri === last) cls = isUp ? 'val-latest-up' : isDown ? 'val-latest-down' : 'val-latest-flat';
+      return `<td class="${cls}">${v === null ? '—' : fmt(v)}</td>`;
+    }).join('');
+    const pColor = p===null?'#333':p>0?'#4caf7d':p<0?'#e07a5f':'#555';
+    const pStr = p===null?'—':`<span style="color:${pColor}">${p>0?'+':''}${p.toFixed(2)}%</span>`;
+    return `<tr>
+      <td>${m.sym}</td>
+      <td>${m.label}</td>
+      <td style="text-align:center;font-size:9px;color:#2e2e2e">${m.unit}</td>
+      ${cells}
+      <td>${badgeHTML(d)}</td>
+      <td style="font-size:10px">${pStr}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <div class="table-section">
+      <div class="table-eyebrow">Raw Data Table</div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th style="text-align:left;width:96px">Symbol</th>
+            <th style="text-align:left">Description</th>
+            <th style="text-align:center;width:50px">Unit</th>
+            ${headers}
+            <th style="width:80px">Δ</th>
+            <th style="width:60px">%</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════
+if (sessionStorage.getItem('platts_auth')) init();
+</script>
+</body>
+</html>
