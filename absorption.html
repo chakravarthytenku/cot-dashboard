@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Absorption Matrix Dashboard</title>
+<style>
+  :root {
+    --bg:         #0d1b2a;
+    --surface:    #112236;
+    --surface2:   #162d45;
+    --border:     #1e3a55;
+    --accent:     #2e75b6;
+    --accent2:    #1a4f82;
+    --text:       #e8f0f8;
+    --text-dim:   #7a9ab8;
+    --text-muted: #4a6a88;
+    --repeat-bg:  #2a1f00;
+    --repeat-fg:  #ffd966;
+    --repeat-bd:  #c8960a;
+    --green:      #1a7a3a;
+    --red:        #8b1a1a;
+    --tag-bg:     #1e3a55;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 13px;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ──────────────────────────────────────────────── */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-left h1 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: .3px;
+  }
+  .header-left .subtitle {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .badge {
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 12px;
+  }
+  .badge.highlight { background: #2a1f00; border-color: var(--repeat-bd); color: var(--repeat-fg); }
+
+  /* ── CONTROLS ─────────────────────────────────────────────── */
+  .controls {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .control-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+
+  /* Date range toggle */
+  .date-toggle {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .date-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    padding: 5px 12px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all .15s;
+    border-right: 1px solid var(--border);
+  }
+  .date-btn:last-child { border-right: none; }
+  .date-btn:hover { background: var(--surface2); color: var(--text); }
+  .date-btn.active { background: var(--accent); color: #fff; }
+
+  /* Product filter pills */
+  .product-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .pill {
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 4px 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all .15s;
+  }
+  .pill:hover { border-color: var(--accent); color: var(--text); }
+  .pill.active { background: var(--accent2); border-color: var(--accent); color: #fff; }
+
+  /* Search */
+  .search-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    width: 160px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .search-box:focus { border-color: var(--accent); }
+  .search-box::placeholder { color: var(--text-muted); }
+
+  /* ── MAIN CONTENT ─────────────────────────────────────────── */
+  .main { padding: 20px 24px; }
+
+  /* ── PRODUCT SECTION ──────────────────────────────────────── */
+  .product-section {
+    margin-bottom: 28px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .product-section.hidden { display: none; }
+
+  .section-header {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 9px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+  .section-header:hover { background: var(--surface); }
+  .section-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--accent);
+  }
+  .section-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .section-toggle { color: var(--text-dim); font-size: 14px; transition: transform .2s; }
+  .section-toggle.collapsed { transform: rotate(-90deg); }
+
+  .section-body { overflow: hidden; }
+  .section-body.collapsed { display: none; }
+
+  /* ── TABLE ────────────────────────────────────────────────── */
+  .table-wrap { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11.5px;
+  }
+
+  /* Date group header row */
+  .date-group-row th {
+    background: var(--accent2);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 4px;
+    text-align: center;
+    border-right: 2px solid var(--bg);
+    letter-spacing: .3px;
+  }
+  .date-group-row th.inst-hdr {
+    background: var(--surface2);
+    border-right: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 10px;
+    text-transform: uppercase;
+  }
+  .date-group-row th.today-col { background: #1a4a2a; }
+  .date-group-row th.empty-col { background: var(--surface); color: var(--text-muted); }
+
+  /* Metric sub-header row */
+  .metric-row th {
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-size: 9.5px;
+    font-weight: 600;
+    padding: 4px 4px;
+    text-align: center;
+    border-right: 1px solid var(--border);
+    text-transform: uppercase;
+    letter-spacing: .3px;
+  }
+  .metric-row th.inst-hdr { border-right: 1px solid var(--border); }
+  .metric-row th.last-in-group { border-right: 2px solid var(--bg); }
+
+  /* Data rows */
+  tbody tr { transition: background .1s; }
+  tbody tr:hover td { background: var(--surface2) !important; }
+  tbody tr.hidden-row { display: none; }
+
+  td {
+    padding: 5px 6px;
+    text-align: center;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    white-space: nowrap;
+  }
+  td.inst-cell {
+    text-align: left;
+    font-weight: 600;
+    padding-left: 12px;
+    border-right: 1px solid var(--border);
+    color: var(--text);
+    min-width: 130px;
+    max-width: 160px;
+  }
+  td.empty-cell { color: var(--text-muted); }
+  td.last-in-group { border-right: 2px solid var(--bg); }
+  td.vol-cell { font-weight: 600; }
+
+  /* Alternating rows */
+  tbody tr.even td { background: var(--surface); }
+  tbody tr.odd  td { background: var(--bg); }
+
+  /* Repeat highlight */
+  tbody tr.repeat td {
+    background: var(--repeat-bg) !important;
+    color: var(--repeat-fg);
+    border-color: #3a2a00;
+  }
+  tbody tr.repeat td.inst-cell {
+    color: var(--repeat-fg);
+    border-left: 3px solid var(--repeat-bd);
+  }
+  tbody tr.repeat:hover td { background: #3a2800 !important; }
+
+  /* Vol ratio colour coding */
+  .ratio-high { color: #ff9966; }
+  .ratio-med  { color: #ffd966; }
+
+  /* ── EMPTY STATE ──────────────────────────────────────────── */
+  .empty-state {
+    padding: 32px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+
+  /* ── FOOTER ───────────────────────────────────────────────── */
+  .footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>⚡ Absorption Matrix Dashboard</h1>
+    <div class="subtitle" id="subtitle">Loading…</div>
+  </div>
+  <div class="header-right">
+    <span class="badge highlight" id="repeat-badge">● 0 repeat contracts</span>
+    <span class="badge" id="date-badge">0 dates in history</span>
+  </div>
+</div>
+
+<div class="controls">
+  <span class="control-label">Range</span>
+  <div class="date-toggle" id="date-toggle">
+    <button class="date-btn active" data-days="5">Last 5D</button>
+    <button class="date-btn" data-days="10">10D</button>
+    <button class="date-btn" data-days="20">20D</button>
+    <button class="date-btn" data-days="0">All</button>
+  </div>
+
+  <span class="control-label" style="margin-left:8px">Products</span>
+  <div class="product-pills" id="product-pills"></div>
+
+  <input class="search-box" id="search" type="text" placeholder="Search contract…">
+</div>
+
+<div class="main" id="main">
+  <div class="empty-state">Loading data…</div>
+</div>
+
+<div class="footer">
+  <span id="footer-left">Absorption Matrix — chakravarthytenku/cot-dashboard</span>
+  <span id="footer-right">Generated: —</span>
+</div>
+
+<script>
+// @@BEGIN_DATA@@
+const ABSORPTION_DATA = {
+  "generated": "2026-06-15 09:52 UTC",
+  "all_dates": [
+    "2026-06-12",
+    "2026-06-11",
+    "2026-06-10",
+    "2026-06-09",
+    "2026-06-05",
+    "2026-05-13"
+  ],
+  "products": [
+    "Wheat",
+    "Corn",
+    "Soybeans",
+    "Soy Meal",
+    "Soy Oil",
+    "Canola / RS",
+    "Palm Oil"
+  ],
+  "records": [
+    {
+      "Instrument": "WN26-U26",
+      "Yesterday Volume": 43504,
+      "10D Avg Vol": 27213.3,
+      "Vol Ratio": 1.6,
+      "Yesterday Range": 1.0,
+      "5D ATR": 1.2,
+      "Max Volume Price": -11.75,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "WU26-H27",
+      "Yesterday Volume": 1669,
+      "10D Avg Vol": 1001.8,
+      "Vol Ratio": 1.67,
+      "Yesterday Range": 2.75,
+      "5D ATR": 1.85,
+      "Max Volume Price": -31.75,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "WU26-U27",
+      "Yesterday Volume": 8,
+      "10D Avg Vol": 4.9,
+      "Vol Ratio": 1.63,
+      "Yesterday Range": 1.25,
+      "5D ATR": 2.85,
+      "Max Volume Price": -58.5,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "KWU26-Z26",
+      "Yesterday Volume": 10116,
+      "10D Avg Vol": 4594.8,
+      "Vol Ratio": 2.2,
+      "Yesterday Range": 1.0,
+      "5D ATR": 1.25,
+      "Max Volume Price": -14.75,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "KWU26-H27",
+      "Yesterday Volume": 940,
+      "10D Avg Vol": 443.3,
+      "Vol Ratio": 2.12,
+      "Yesterday Range": 1.75,
+      "5D ATR": 2.5,
+      "Max Volume Price": -28.0,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "KWU26-N27",
+      "Yesterday Volume": 85,
+      "10D Avg Vol": 11.9,
+      "Vol Ratio": 7.14,
+      "Yesterday Range": 1.25,
+      "5D ATR": 3.85,
+      "Max Volume Price": -38.5,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "CNN26-U26",
+      "Yesterday Volume": 118362,
+      "10D Avg Vol": 65687.7,
+      "Vol Ratio": 1.8,
+      "Yesterday Range": 1.25,
+      "5D ATR": 1.3,
+      "Max Volume Price": -8.0,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "CNZ26-H27",
+      "Yesterday Volume": 12868,
+      "10D Avg Vol": 7819.2,
+      "Vol Ratio": 1.65,
+      "Yesterday Range": 0.75,
+      "5D ATR": 0.85,
+      "Max Volume Price": -14.75,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "CNH27-K27",
+      "Yesterday Volume": 3912,
+      "10D Avg Vol": 2287.9,
+      "Vol Ratio": 1.71,
+      "Yesterday Range": 0.75,
+      "5D ATR": 0.7,
+      "Max Volume Price": -9.25,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "CNU26-K27",
+      "Yesterday Volume": 1253,
+      "10D Avg Vol": 579.4,
+      "Vol Ratio": 2.16,
+      "Yesterday Range": 1.75,
+      "5D ATR": 1.8,
+      "Max Volume Price": -43.25,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "CNH27-U27",
+      "Yesterday Volume": 98,
+      "10D Avg Vol": 5.7,
+      "Vol Ratio": 17.19,
+      "Yesterday Range": 1.25,
+      "5D ATR": 1.3,
+      "Max Volume Price": -6.0,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "CNN26-K27",
+      "Yesterday Volume": 1765,
+      "10D Avg Vol": 759.0,
+      "Vol Ratio": 2.33,
+      "Yesterday Range": 2.5,
+      "5D ATR": 2.55,
+      "Max Volume Price": -51.5,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "CNU26-N27",
+      "Yesterday Volume": 593,
+      "10D Avg Vol": 362.6,
+      "Vol Ratio": 1.64,
+      "Yesterday Range": 2.5,
+      "5D ATR": 2.25,
+      "Max Volume Price": -49.75,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "CNZ26-U27",
+      "Yesterday Volume": 71,
+      "10D Avg Vol": 27.5,
+      "Vol Ratio": 2.58,
+      "Yesterday Range": 1.5,
+      "5D ATR": 2.45,
+      "Max Volume Price": -21.0,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "CNH27-Z27",
+      "Yesterday Volume": 213,
+      "10D Avg Vol": 60.1,
+      "Vol Ratio": 3.54,
+      "Yesterday Range": 2.5,
+      "5D ATR": 4.05,
+      "Max Volume Price": -13.0,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "CNN26-U27",
+      "Yesterday Volume": 76,
+      "10D Avg Vol": 3.7,
+      "Vol Ratio": 20.54,
+      "Yesterday Range": 1.75,
+      "5D ATR": 2.15,
+      "Max Volume Price": -48.0,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "CNZ26-Z27",
+      "Yesterday Volume": 3994,
+      "10D Avg Vol": 2118.8,
+      "Vol Ratio": 1.89,
+      "Yesterday Range": 2.5,
+      "5D ATR": 4.45,
+      "Max Volume Price": -28.0,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "SBX26-F27",
+      "Yesterday Volume": 8453,
+      "10D Avg Vol": 5270.2,
+      "Vol Ratio": 1.6,
+      "Yesterday Range": 0.75,
+      "5D ATR": 0.6,
+      "Max Volume Price": -14.0,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "SBU26-H27",
+      "Yesterday Volume": 364,
+      "10D Avg Vol": 232.6,
+      "Vol Ratio": 1.56,
+      "Yesterday Range": 3.75,
+      "5D ATR": 3.05,
+      "Max Volume Price": -35.5,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "SBQ26-N27",
+      "Yesterday Volume": 84,
+      "10D Avg Vol": 44.8,
+      "Vol Ratio": 1.88,
+      "Yesterday Range": 5.25,
+      "5D ATR": 4.75,
+      "Max Volume Price": -49.75,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "SMV26-Z26",
+      "Yesterday Volume": 5655,
+      "10D Avg Vol": 3687.2,
+      "Vol Ratio": 1.53,
+      "Yesterday Range": 0.5,
+      "5D ATR": 0.5,
+      "Max Volume Price": -3.6,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "SMU26-F27",
+      "Yesterday Volume": 253,
+      "10D Avg Vol": 111.2,
+      "Vol Ratio": 2.28,
+      "Yesterday Range": 1.5,
+      "5D ATR": 2.1,
+      "Max Volume Price": -4.5,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "SMN26-Z26",
+      "Yesterday Volume": 31840,
+      "10D Avg Vol": 19044.5,
+      "Vol Ratio": 1.67,
+      "Yesterday Range": 3.4,
+      "5D ATR": 3.9,
+      "Max Volume Price": -1.8,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "SMN26-H27",
+      "Yesterday Volume": 447,
+      "10D Avg Vol": 254.7,
+      "Vol Ratio": 1.76,
+      "Yesterday Range": 3.8,
+      "5D ATR": 4.5,
+      "Max Volume Price": -5.8,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "SMN26-K27",
+      "Yesterday Volume": 336,
+      "10D Avg Vol": 92.4,
+      "Vol Ratio": 3.64,
+      "Yesterday Range": 4.5,
+      "5D ATR": 5.2,
+      "Max Volume Price": -8.8,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "BOQ26-V26",
+      "Yesterday Volume": 821,
+      "10D Avg Vol": 527.5,
+      "Vol Ratio": 1.56,
+      "Yesterday Range": 0.34,
+      "5D ATR": 0.36,
+      "Max Volume Price": 2.32,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "BOQ26-Z26",
+      "Yesterday Volume": 7487,
+      "10D Avg Vol": 4919.8,
+      "Vol Ratio": 1.52,
+      "Yesterday Range": 0.43,
+      "5D ATR": 0.53,
+      "Max Volume Price": 3.27,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "BOU26-F27",
+      "Yesterday Volume": 549,
+      "10D Avg Vol": 355.6,
+      "Vol Ratio": 1.54,
+      "Yesterday Range": 0.31,
+      "5D ATR": 0.42,
+      "Max Volume Price": 2.3,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "BOU26-H27",
+      "Yesterday Volume": 120,
+      "10D Avg Vol": 40.7,
+      "Vol Ratio": 2.95,
+      "Yesterday Range": 0.28,
+      "5D ATR": 0.42,
+      "Max Volume Price": 2.83,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "CRSN26-F27",
+      "Yesterday Volume": 856,
+      "10D Avg Vol": 226.7,
+      "Vol Ratio": 3.78,
+      "Yesterday Range": 0.9,
+      "5D ATR": 3.8,
+      "Max Volume Price": -16.6,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "RSX26-G27",
+      "Yesterday Volume": 2257,
+      "10D Avg Vol": 995.8,
+      "Vol Ratio": 2.27,
+      "Yesterday Range": 0.75,
+      "5D ATR": 0.55,
+      "Max Volume Price": -0.5,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "RSG27-K27",
+      "Yesterday Volume": 286,
+      "10D Avg Vol": 84.3,
+      "Vol Ratio": 3.39,
+      "Yesterday Range": 0.75,
+      "5D ATR": 1.1,
+      "Max Volume Price": 2.5,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "RSK27-Q27",
+      "Yesterday Volume": 83,
+      "10D Avg Vol": 23.1,
+      "Vol Ratio": 3.59,
+      "Yesterday Range": 2.25,
+      "5D ATR": 3.0,
+      "Max Volume Price": 29.5,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "RSX26-K27",
+      "Yesterday Volume": 168,
+      "10D Avg Vol": 71.1,
+      "Vol Ratio": 2.36,
+      "Yesterday Range": 1.75,
+      "5D ATR": 1.45,
+      "Max Volume Price": 2.25,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "FCPOQ26-F27",
+      "Yesterday Volume": 253,
+      "10D Avg Vol": 167.5,
+      "Vol Ratio": 1.51,
+      "Yesterday Range": 20.0,
+      "5D ATR": 22.4,
+      "Max Volume Price": -159.0,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "SBU26-X27",
+      "Yesterday Volume": 4,
+      "10D Avg Vol": 2.5,
+      "Vol Ratio": 1.6,
+      "Yesterday Range": 2.0,
+      "5D ATR": 7.9,
+      "Max Volume Price": null,
+      "Date": "2026-06-10"
+    },
+    {
+      "Instrument": "FCPOQ26-K27",
+      "Yesterday Volume": 36,
+      "10D Avg Vol": 16.1,
+      "Vol Ratio": 2.24,
+      "Yesterday Range": 20.0,
+      "5D ATR": 25.6,
+      "Max Volume Price": null,
+      "Date": "2026-06-10"
+    },
+    {
+      "Instrument": "FCPOU26-N27",
+      "Yesterday Volume": 12,
+      "10D Avg Vol": 6.9,
+      "Vol Ratio": 1.74,
+      "Yesterday Range": 1.0,
+      "5D ATR": 31.4,
+      "Max Volume Price": -9.0,
+      "Date": "2026-06-10"
+    },
+    {
+      "Instrument": "WZ26-H27",
+      "Yesterday Volume": 4694,
+      "10D Avg Vol": 2958.3,
+      "Vol Ratio": 1.59,
+      "Yesterday Range": 1.25,
+      "5D ATR": 1.2,
+      "Max Volume Price": -14.0,
+      "Date": "2026-06-12"
+    },
+    {
+      "Instrument": "WU26-H27",
+      "Yesterday Volume": 2013,
+      "10D Avg Vol": 1097.4,
+      "Vol Ratio": 1.83,
+      "Yesterday Range": 2.0,
+      "5D ATR": 2.05,
+      "Max Volume Price": -30.0,
+      "Date": "2026-06-12"
+    },
+    {
+      "Instrument": "KWN26-U26",
+      "Yesterday Volume": 31772,
+      "10D Avg Vol": 20516.6,
+      "Vol Ratio": 1.55,
+      "Yesterday Range": 1.75,
+      "5D ATR": 2.15,
+      "Max Volume Price": -6.25,
+      "Date": "2026-06-12"
+    },
+    {
+      "Instrument": "KWU26-H27",
+      "Yesterday Volume": 870,
+      "10D Avg Vol": 512.6,
+      "Vol Ratio": 1.7,
+      "Yesterday Range": 3.25,
+      "5D ATR": 2.55,
+      "Max Volume Price": -24.5,
+      "Date": "2026-06-12"
+    },
+    {
+      "Instrument": "KWU26-K27",
+      "Yesterday Volume": 306,
+      "10D Avg Vol": 166.0,
+      "Vol Ratio": 1.84,
+      "Yesterday Range": 3.75,
+      "5D ATR": 3.6,
+      "Max Volume Price": -32.25,
+      "Date": "2026-06-12"
+    },
+    {
+      "Instrument": "CNU26-U27",
+      "Yesterday Volume": 49,
+      "10D Avg Vol": 17.1,
+      "Vol Ratio": 2.87,
+      "Yesterday Range": 2.75,
+      "5D ATR": 2.75,
+      "Max Volume Price": -39.75,
+      "Date": "2026-06-12"
+    },
+    {
+      "Instrument": "SBU26-X27",
+      "Yesterday Volume": 8,
+      "10D Avg Vol": 2.8,
+      "Vol Ratio": 2.86,
+      "Yesterday Range": 0.5,
+      "5D ATR": 3.0,
+      "Max Volume Price": -2.0,
+      "Date": "2026-06-12"
+    },
+    {
+      "Instrument": "SMQ26-N27",
+      "Yesterday Volume": 8,
+      "10D Avg Vol": 3.1,
+      "Vol Ratio": 2.58,
+      "Yesterday Range": 0.0,
+      "5D ATR": 7.3,
+      "Max Volume Price": -14.0,
+      "Date": "2026-06-12"
+    },
+    {
+      "Instrument": "CRSN26-F27",
+      "Yesterday Volume": 1002,
+      "10D Avg Vol": 302.9,
+      "Vol Ratio": 3.31,
+      "Yesterday Range": 0.6,
+      "5D ATR": 3.3,
+      "Max Volume Price": -16.9,
+      "Date": "2026-06-12"
+    },
+    {
+      "Instrument": "FCPOX26-X27",
+      "Yesterday Volume": 4,
+      "10D Avg Vol": 1.8,
+      "Vol Ratio": 2.22,
+      "Yesterday Range": 1.0,
+      "5D ATR": 11.0,
+      "Max Volume Price": 92.0,
+      "Date": "2026-06-12"
+    },
+    {
+      "Instrument": "WU26-Z27",
+      "Yesterday Volume": 7,
+      "10D Avg Vol": 3.4,
+      "Vol Ratio": 2.06,
+      "Yesterday Range": 0.25,
+      "5D ATR": 3.3,
+      "Max Volume Price": null,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "WN26-Z27",
+      "Yesterday Volume": 12,
+      "10D Avg Vol": 4.9,
+      "Vol Ratio": 2.45,
+      "Yesterday Range": 0.75,
+      "5D ATR": 3.55,
+      "Max Volume Price": null,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "SMV26-N27",
+      "Yesterday Volume": 26,
+      "10D Avg Vol": 9.1,
+      "Vol Ratio": 2.86,
+      "Yesterday Range": 1.9,
+      "5D ATR": 2.5,
+      "Max Volume Price": null,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "SMV26-U27",
+      "Yesterday Volume": 40,
+      "10D Avg Vol": 10.3,
+      "Vol Ratio": 3.88,
+      "Yesterday Range": 2.7,
+      "5D ATR": 1.9,
+      "Max Volume Price": null,
+      "Date": "2026-06-11"
+    },
+    {
+      "Instrument": "BOQ26-N27",
+      "Yesterday Volume": 15,
+      "10D Avg Vol": 4.9,
+      "Vol Ratio": 3.06,
+      "Yesterday Range": 0.14,
+      "5D ATR": 0.6,
+      "Max Volume Price": null,
+      "Date": "2026-06-09"
+    },
+    {
+      "Instrument": "CRSX26-N27",
+      "Yesterday Volume": 13,
+      "10D Avg Vol": 3.5,
+      "Vol Ratio": 3.71,
+      "Yesterday Range": 3.2,
+      "5D ATR": 4.9,
+      "Max Volume Price": null,
+      "Date": "2026-06-09"
+    },
+    {
+      "Instrument": "FCPOV26-U27",
+      "Yesterday Volume": 10,
+      "10D Avg Vol": 4.8,
+      "Vol Ratio": 2.08,
+      "Yesterday Range": 18.0,
+      "5D ATR": 28.4,
+      "Max Volume Price": null,
+      "Date": "2026-06-05"
+    },
+    {
+      "Instrument": "FCPON26-N27",
+      "Yesterday Volume": 10,
+      "10D Avg Vol": 4.4,
+      "Vol Ratio": 2.27,
+      "Yesterday Range": 1.0,
+      "5D ATR": 18.0,
+      "Max Volume Price": null,
+      "Date": "2026-05-13"
+    }
+  ]
+};
+// @@END_DATA@@
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+const state = {
+  daysWindow:      5,
+  activeProducts:  new Set(),   // empty = all visible
+  searchQuery:     "",
+  collapsed:       new Set(),
+};
+
+const PRODUCTS_ORDER = [
+  "Wheat","Corn","Soybeans","Soy Meal","Soy Oil","Canola / RS","Palm Oil"
+];
+
+const METRICS = [
+  { key: "Yesterday Volume",  label: "Vol",    fmt: fmtVol  },
+  { key: "10D Avg Vol",       label: "10D Avg",fmt: fmtVol  },
+  { key: "Vol Ratio",         label: "Ratio",  fmt: fmtRatio},
+  { key: "Yesterday Range",   label: "Range",  fmt: fmtNum  },
+  { key: "5D ATR",            label: "ATR",    fmt: fmtNum  },
+  { key: "Max Volume Price",  label: "MVP",    fmt: fmtNum  },
+];
+
+// ── FORMAT HELPERS ────────────────────────────────────────────────────────────
+function fmtVol(v)   { if (v == null) return "—"; return Number(v).toLocaleString(); }
+function fmtNum(v)   { if (v == null) return "—"; return Number(v).toFixed(2); }
+function fmtRatio(v) { if (v == null) return "—"; return Number(v).toFixed(2); }
+
+function ratioClass(v) {
+  if (v == null) return "";
+  return v >= 3 ? "ratio-high" : v >= 2 ? "ratio-med" : "";
+}
+
+// ── MAIN RENDER ───────────────────────────────────────────────────────────────
+function render() {
+  if (!ABSORPTION_DATA) {
+    document.getElementById("main").innerHTML =
+      '<div class="empty-state">No data loaded yet. Push an Excel file to absorption-data/ to get started.</div>';
+    return;
+  }
+
+  const { all_dates, products, records, generated } = ABSORPTION_DATA;
+
+  // Filter dates by window
+  const days = state.daysWindow;
+  const visibleDates = days === 0 ? all_dates : all_dates.slice(0, days);
+
+  // Update badges
+  document.getElementById("subtitle").textContent =
+    `Showing ${visibleDates.length} day${visibleDates.length !== 1 ? "s" : ""}  ·  Latest: ${visibleDates[0] || "—"}`;
+  document.getElementById("date-badge").textContent =
+    `${all_dates.length} dates in history`;
+  document.getElementById("footer-right").textContent = `Generated: ${generated}`;
+
+  // Compute repeat instruments within visible window
+  const instDayCount = {};
+  for (const r of records) {
+    if (visibleDates.includes(r.Date)) {
+      instDayCount[r.Instrument] = (instDayCount[r.Instrument] || 0) + 1;
+    }
+  }
+  const repeatInsts = new Set(Object.entries(instDayCount)
+    .filter(([, c]) => c >= 2).map(([i]) => i));
+  document.getElementById("repeat-badge").textContent =
+    `● ${repeatInsts.size} repeat contracts`;
+
+  // Group records by product+instrument for quick lookup
+  const byProdInst = {};   // prod → inst → date → record
+  for (const r of records) {
+    if (!visibleDates.includes(r.Date)) continue;
+    const prod = r.Product || "Other";
+    if (!byProdInst[prod]) byProdInst[prod] = {};
+    if (!byProdInst[prod][r.Instrument]) byProdInst[prod][r.Instrument] = {};
+    byProdInst[prod][r.Instrument][r.Date] = r;
+  }
+
+  // Build product pills (once)
+  const pillsEl = document.getElementById("product-pills");
+  if (!pillsEl.children.length) {
+    for (const p of PRODUCTS_ORDER) {
+      const btn = document.createElement("button");
+      btn.className = "pill";
+      btn.textContent = p;
+      btn.dataset.product = p;
+      btn.addEventListener("click", () => {
+        if (state.activeProducts.has(p)) state.activeProducts.delete(p);
+        else state.activeProducts.add(p);
+        applyFilters();
+        updatePills();
+      });
+      pillsEl.appendChild(btn);
+    }
+  }
+
+  // Render sections
+  const main = document.getElementById("main");
+  main.innerHTML = "";
+
+  const orderedProds = PRODUCTS_ORDER.filter(p => byProdInst[p]);
+
+  for (const prod of orderedProds) {
+    const instMap = byProdInst[prod];
+    // Sort instruments by volume on the most recent date they appear, desc
+    const instList = Object.keys(instMap).sort((a, b) => {
+      const latestA = visibleDates.find(d => instMap[a][d]);
+      const latestB = visibleDates.find(d => instMap[b][d]);
+      const volA = latestA ? (instMap[a][latestA]["Yesterday Volume"] || 0) : 0;
+      const volB = latestB ? (instMap[b][latestB]["Yesterday Volume"] || 0) : 0;
+      return volB - volA;
+    });
+
+    const section = buildSection(prod, instList, instMap, visibleDates, repeatInsts);
+    main.appendChild(section);
+  }
+
+  if (!orderedProds.length) {
+    main.innerHTML = '<div class="empty-state">No data for the selected range.</div>';
+  }
+
+  applyFilters();
+}
+
+// ── BUILD ONE PRODUCT SECTION ─────────────────────────────────────────────────
+function buildSection(prod, instList, instMap, visibleDates, repeatInsts) {
+  const section = document.createElement("div");
+  section.className = "product-section";
+  section.dataset.product = prod;
+
+  const repeatCount = instList.filter(i => repeatInsts.has(i)).length;
+  const collapsed   = state.collapsed.has(prod);
+
+  // Header
+  const hdr = document.createElement("div");
+  hdr.className = "section-header";
+  hdr.innerHTML = `
+    <span class="section-title">${prod}</span>
+    <span class="section-meta">${instList.length} contracts · ${repeatCount} repeating</span>
+    <span class="section-toggle ${collapsed ? "collapsed" : ""}">▼</span>
+  `;
+  hdr.addEventListener("click", () => {
+    const body   = section.querySelector(".section-body");
+    const toggle = hdr.querySelector(".section-toggle");
+    if (state.collapsed.has(prod)) {
+      state.collapsed.delete(prod);
+      body.classList.remove("collapsed");
+      toggle.classList.remove("collapsed");
+    } else {
+      state.collapsed.add(prod);
+      body.classList.add("collapsed");
+      toggle.classList.add("collapsed");
+    }
+  });
+  section.appendChild(hdr);
+
+  // Body
+  const body = document.createElement("div");
+  body.className = "section-body" + (collapsed ? " collapsed" : "");
+
+  const wrap = document.createElement("div");
+  wrap.className = "table-wrap";
+
+  const table = document.createElement("table");
+
+  // ── Date group header row ──────────────────────────────────────────────────
+  const dateRow = document.createElement("tr");
+  dateRow.className = "date-group-row";
+
+  const instTh = document.createElement("th");
+  instTh.className = "inst-hdr";
+  instTh.textContent = "Contract";
+  instTh.rowSpan = 2;
+  instTh.style.verticalAlign = "bottom";
+  dateRow.appendChild(instTh);
+
+  for (let di = 0; di < visibleDates.length; di++) {
+    const d   = visibleDates[di];
+    const th  = document.createElement("th");
+    th.colSpan = METRICS.length;
+    th.textContent = d;
+    if (di === 0) th.classList.add("today-col");
+    // mark last metric col of each date
+    th.style.borderRight = di < visibleDates.length - 1 ? "2px solid var(--bg)" : "";
+    dateRow.appendChild(th);
+  }
+  table.appendChild(dateRow);
+
+  // ── Metric sub-header row ──────────────────────────────────────────────────
+  const metricRow = document.createElement("tr");
+  metricRow.className = "metric-row";
+
+  for (let di = 0; di < visibleDates.length; di++) {
+    for (let mi = 0; mi < METRICS.length; mi++) {
+      const th = document.createElement("th");
+      th.textContent = METRICS[mi].label;
+      if (mi === METRICS.length - 1) th.classList.add("last-in-group");
+      metricRow.appendChild(th);
+    }
+  }
+  table.appendChild(metricRow);
+
+  // ── Data rows ──────────────────────────────────────────────────────────────
+  const tbody = document.createElement("tbody");
+  instList.forEach((inst, ri) => {
+    const tr = document.createElement("tr");
+    tr.className = repeatInsts.has(inst) ? "repeat" : (ri % 2 === 0 ? "even" : "odd");
+    tr.dataset.inst = inst;
+
+    const tdInst = document.createElement("td");
+    tdInst.className = "inst-cell";
+    tdInst.textContent = inst;
+    tr.appendChild(tdInst);
+
+    for (let di = 0; di < visibleDates.length; di++) {
+      const d   = visibleDates[di];
+      const rec = instMap[inst]?.[d];
+
+      for (let mi = 0; mi < METRICS.length; mi++) {
+        const td  = document.createElement("td");
+        const m   = METRICS[mi];
+
+        if (!rec) {
+          td.textContent = "—";
+          td.classList.add("empty-cell");
+        } else {
+          const val = rec[m.key];
+          td.textContent = m.fmt(val);
+          if (mi === 0) td.classList.add("vol-cell");
+          if (mi === 2 && val != null) td.className += " " + ratioClass(val);
+        }
+
+        if (mi === METRICS.length - 1) td.classList.add("last-in-group");
+        tr.appendChild(td);
+      }
+    }
+
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+  body.appendChild(wrap);
+  section.appendChild(body);
+  return section;
+}
+
+// ── FILTERS ───────────────────────────────────────────────────────────────────
+function applyFilters() {
+  const q = state.searchQuery.toLowerCase();
+
+  document.querySelectorAll(".product-section").forEach(sec => {
+    const prod    = sec.dataset.product;
+    const prodVis = state.activeProducts.size === 0 || state.activeProducts.has(prod);
+    sec.classList.toggle("hidden", !prodVis);
+    if (!prodVis) return;
+
+    // Search within rows
+    let anyVisible = false;
+    sec.querySelectorAll("tbody tr").forEach(tr => {
+      const inst = (tr.dataset.inst || "").toLowerCase();
+      const show = !q || inst.includes(q);
+      tr.classList.toggle("hidden-row", !show);
+      if (show) anyVisible = true;
+    });
+
+    // Hide entire section if search yields nothing
+    if (q && !anyVisible) sec.classList.add("hidden");
+  });
+}
+
+function updatePills() {
+  document.querySelectorAll(".pill").forEach(p => {
+    p.classList.toggle("active", state.activeProducts.has(p.dataset.product));
+  });
+}
+
+// ── EVENT WIRING ──────────────────────────────────────────────────────────────
+document.getElementById("date-toggle").addEventListener("click", e => {
+  const btn = e.target.closest(".date-btn");
+  if (!btn) return;
+  document.querySelectorAll(".date-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  state.daysWindow = parseInt(btn.dataset.days);
+  render();
+});
+
+document.getElementById("search").addEventListener("input", e => {
+  state.searchQuery = e.target.value;
+  applyFilters();
+});
+
+// ── BOOT ──────────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>

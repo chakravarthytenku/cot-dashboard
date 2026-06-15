@@ -1,0 +1,562 @@
+[
+  {
+    "Instrument": "WN26-U26",
+    "Yesterday Volume": 43504,
+    "10D Avg Vol": 27213.3,
+    "Vol Ratio": 1.6,
+    "Yesterday Range": 1.0,
+    "5D ATR": 1.2,
+    "Max Volume Price": -11.75,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "WU26-H27",
+    "Yesterday Volume": 1669,
+    "10D Avg Vol": 1001.8,
+    "Vol Ratio": 1.67,
+    "Yesterday Range": 2.75,
+    "5D ATR": 1.85,
+    "Max Volume Price": -31.75,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "WU26-U27",
+    "Yesterday Volume": 8,
+    "10D Avg Vol": 4.9,
+    "Vol Ratio": 1.63,
+    "Yesterday Range": 1.25,
+    "5D ATR": 2.85,
+    "Max Volume Price": -58.5,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "KWU26-Z26",
+    "Yesterday Volume": 10116,
+    "10D Avg Vol": 4594.8,
+    "Vol Ratio": 2.2,
+    "Yesterday Range": 1.0,
+    "5D ATR": 1.25,
+    "Max Volume Price": -14.75,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "KWU26-H27",
+    "Yesterday Volume": 940,
+    "10D Avg Vol": 443.3,
+    "Vol Ratio": 2.12,
+    "Yesterday Range": 1.75,
+    "5D ATR": 2.5,
+    "Max Volume Price": -28.0,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "KWU26-N27",
+    "Yesterday Volume": 85,
+    "10D Avg Vol": 11.9,
+    "Vol Ratio": 7.14,
+    "Yesterday Range": 1.25,
+    "5D ATR": 3.85,
+    "Max Volume Price": -38.5,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "CNN26-U26",
+    "Yesterday Volume": 118362,
+    "10D Avg Vol": 65687.7,
+    "Vol Ratio": 1.8,
+    "Yesterday Range": 1.25,
+    "5D ATR": 1.3,
+    "Max Volume Price": -8.0,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "CNZ26-H27",
+    "Yesterday Volume": 12868,
+    "10D Avg Vol": 7819.2,
+    "Vol Ratio": 1.65,
+    "Yesterday Range": 0.75,
+    "5D ATR": 0.85,
+    "Max Volume Price": -14.75,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "CNH27-K27",
+    "Yesterday Volume": 3912,
+    "10D Avg Vol": 2287.9,
+    "Vol Ratio": 1.71,
+    "Yesterday Range": 0.75,
+    "5D ATR": 0.7,
+    "Max Volume Price": -9.25,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "CNU26-K27",
+    "Yesterday Volume": 1253,
+    "10D Avg Vol": 579.4,
+    "Vol Ratio": 2.16,
+    "Yesterday Range": 1.75,
+    "5D ATR": 1.8,
+    "Max Volume Price": -43.25,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "CNH27-U27",
+    "Yesterday Volume": 98,
+    "10D Avg Vol": 5.7,
+    "Vol Ratio": 17.19,
+    "Yesterday Range": 1.25,
+    "5D ATR": 1.3,
+    "Max Volume Price": -6.0,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "CNN26-K27",
+    "Yesterday Volume": 1765,
+    "10D Avg Vol": 759.0,
+    "Vol Ratio": 2.33,
+    "Yesterday Range": 2.5,
+    "5D ATR": 2.55,
+    "Max Volume Price": -51.5,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "CNU26-N27",
+    "Yesterday Volume": 593,
+    "10D Avg Vol": 362.6,
+    "Vol Ratio": 1.64,
+    "Yesterday Range": 2.5,
+    "5D ATR": 2.25,
+    "Max Volume Price": -49.75,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "CNZ26-U27",
+    "Yesterday Volume": 71,
+    "10D Avg Vol": 27.5,
+    "Vol Ratio": 2.58,
+    "Yesterday Range": 1.5,
+    "5D ATR": 2.45,
+    "Max Volume Price": -21.0,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "CNH27-Z27",
+    "Yesterday Volume": 213,
+    "10D Avg Vol": 60.1,
+    "Vol Ratio": 3.54,
+    "Yesterday Range": 2.5,
+    "5D ATR": 4.05,
+    "Max Volume Price": -13.0,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "CNN26-U27",
+    "Yesterday Volume": 76,
+    "10D Avg Vol": 3.7,
+    "Vol Ratio": 20.54,
+    "Yesterday Range": 1.75,
+    "5D ATR": 2.15,
+    "Max Volume Price": -48.0,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "CNZ26-Z27",
+    "Yesterday Volume": 3994,
+    "10D Avg Vol": 2118.8,
+    "Vol Ratio": 1.89,
+    "Yesterday Range": 2.5,
+    "5D ATR": 4.45,
+    "Max Volume Price": -28.0,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "SBX26-F27",
+    "Yesterday Volume": 8453,
+    "10D Avg Vol": 5270.2,
+    "Vol Ratio": 1.6,
+    "Yesterday Range": 0.75,
+    "5D ATR": 0.6,
+    "Max Volume Price": -14.0,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "SBU26-H27",
+    "Yesterday Volume": 364,
+    "10D Avg Vol": 232.6,
+    "Vol Ratio": 1.56,
+    "Yesterday Range": 3.75,
+    "5D ATR": 3.05,
+    "Max Volume Price": -35.5,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "SBQ26-N27",
+    "Yesterday Volume": 84,
+    "10D Avg Vol": 44.8,
+    "Vol Ratio": 1.88,
+    "Yesterday Range": 5.25,
+    "5D ATR": 4.75,
+    "Max Volume Price": -49.75,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "SMV26-Z26",
+    "Yesterday Volume": 5655,
+    "10D Avg Vol": 3687.2,
+    "Vol Ratio": 1.53,
+    "Yesterday Range": 0.5,
+    "5D ATR": 0.5,
+    "Max Volume Price": -3.6,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "SMU26-F27",
+    "Yesterday Volume": 253,
+    "10D Avg Vol": 111.2,
+    "Vol Ratio": 2.28,
+    "Yesterday Range": 1.5,
+    "5D ATR": 2.1,
+    "Max Volume Price": -4.5,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "SMN26-Z26",
+    "Yesterday Volume": 31840,
+    "10D Avg Vol": 19044.5,
+    "Vol Ratio": 1.67,
+    "Yesterday Range": 3.4,
+    "5D ATR": 3.9,
+    "Max Volume Price": -1.8,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "SMN26-H27",
+    "Yesterday Volume": 447,
+    "10D Avg Vol": 254.7,
+    "Vol Ratio": 1.76,
+    "Yesterday Range": 3.8,
+    "5D ATR": 4.5,
+    "Max Volume Price": -5.8,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "SMN26-K27",
+    "Yesterday Volume": 336,
+    "10D Avg Vol": 92.4,
+    "Vol Ratio": 3.64,
+    "Yesterday Range": 4.5,
+    "5D ATR": 5.2,
+    "Max Volume Price": -8.8,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "BOQ26-V26",
+    "Yesterday Volume": 821,
+    "10D Avg Vol": 527.5,
+    "Vol Ratio": 1.56,
+    "Yesterday Range": 0.34,
+    "5D ATR": 0.36,
+    "Max Volume Price": 2.32,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "BOQ26-Z26",
+    "Yesterday Volume": 7487,
+    "10D Avg Vol": 4919.8,
+    "Vol Ratio": 1.52,
+    "Yesterday Range": 0.43,
+    "5D ATR": 0.53,
+    "Max Volume Price": 3.27,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "BOU26-F27",
+    "Yesterday Volume": 549,
+    "10D Avg Vol": 355.6,
+    "Vol Ratio": 1.54,
+    "Yesterday Range": 0.31,
+    "5D ATR": 0.42,
+    "Max Volume Price": 2.3,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "BOU26-H27",
+    "Yesterday Volume": 120,
+    "10D Avg Vol": 40.7,
+    "Vol Ratio": 2.95,
+    "Yesterday Range": 0.28,
+    "5D ATR": 0.42,
+    "Max Volume Price": 2.83,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "CRSN26-F27",
+    "Yesterday Volume": 856,
+    "10D Avg Vol": 226.7,
+    "Vol Ratio": 3.78,
+    "Yesterday Range": 0.9,
+    "5D ATR": 3.8,
+    "Max Volume Price": -16.6,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "RSX26-G27",
+    "Yesterday Volume": 2257,
+    "10D Avg Vol": 995.8,
+    "Vol Ratio": 2.27,
+    "Yesterday Range": 0.75,
+    "5D ATR": 0.55,
+    "Max Volume Price": -0.5,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "RSG27-K27",
+    "Yesterday Volume": 286,
+    "10D Avg Vol": 84.3,
+    "Vol Ratio": 3.39,
+    "Yesterday Range": 0.75,
+    "5D ATR": 1.1,
+    "Max Volume Price": 2.5,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "RSK27-Q27",
+    "Yesterday Volume": 83,
+    "10D Avg Vol": 23.1,
+    "Vol Ratio": 3.59,
+    "Yesterday Range": 2.25,
+    "5D ATR": 3.0,
+    "Max Volume Price": 29.5,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "RSX26-K27",
+    "Yesterday Volume": 168,
+    "10D Avg Vol": 71.1,
+    "Vol Ratio": 2.36,
+    "Yesterday Range": 1.75,
+    "5D ATR": 1.45,
+    "Max Volume Price": 2.25,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "FCPOQ26-F27",
+    "Yesterday Volume": 253,
+    "10D Avg Vol": 167.5,
+    "Vol Ratio": 1.51,
+    "Yesterday Range": 20.0,
+    "5D ATR": 22.4,
+    "Max Volume Price": -159.0,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "SBU26-X27",
+    "Yesterday Volume": 4,
+    "10D Avg Vol": 2.5,
+    "Vol Ratio": 1.6,
+    "Yesterday Range": 2.0,
+    "5D ATR": 7.9,
+    "Max Volume Price": NaN,
+    "Date": "2026-06-10"
+  },
+  {
+    "Instrument": "FCPOQ26-K27",
+    "Yesterday Volume": 36,
+    "10D Avg Vol": 16.1,
+    "Vol Ratio": 2.24,
+    "Yesterday Range": 20.0,
+    "5D ATR": 25.6,
+    "Max Volume Price": NaN,
+    "Date": "2026-06-10"
+  },
+  {
+    "Instrument": "FCPOU26-N27",
+    "Yesterday Volume": 12,
+    "10D Avg Vol": 6.9,
+    "Vol Ratio": 1.74,
+    "Yesterday Range": 1.0,
+    "5D ATR": 31.4,
+    "Max Volume Price": -9.0,
+    "Date": "2026-06-10"
+  },
+  {
+    "Instrument": "WZ26-H27",
+    "Yesterday Volume": 4694,
+    "10D Avg Vol": 2958.3,
+    "Vol Ratio": 1.59,
+    "Yesterday Range": 1.25,
+    "5D ATR": 1.2,
+    "Max Volume Price": -14.0,
+    "Date": "2026-06-12"
+  },
+  {
+    "Instrument": "WU26-H27",
+    "Yesterday Volume": 2013,
+    "10D Avg Vol": 1097.4,
+    "Vol Ratio": 1.83,
+    "Yesterday Range": 2.0,
+    "5D ATR": 2.05,
+    "Max Volume Price": -30.0,
+    "Date": "2026-06-12"
+  },
+  {
+    "Instrument": "KWN26-U26",
+    "Yesterday Volume": 31772,
+    "10D Avg Vol": 20516.6,
+    "Vol Ratio": 1.55,
+    "Yesterday Range": 1.75,
+    "5D ATR": 2.15,
+    "Max Volume Price": -6.25,
+    "Date": "2026-06-12"
+  },
+  {
+    "Instrument": "KWU26-H27",
+    "Yesterday Volume": 870,
+    "10D Avg Vol": 512.6,
+    "Vol Ratio": 1.7,
+    "Yesterday Range": 3.25,
+    "5D ATR": 2.55,
+    "Max Volume Price": -24.5,
+    "Date": "2026-06-12"
+  },
+  {
+    "Instrument": "KWU26-K27",
+    "Yesterday Volume": 306,
+    "10D Avg Vol": 166.0,
+    "Vol Ratio": 1.84,
+    "Yesterday Range": 3.75,
+    "5D ATR": 3.6,
+    "Max Volume Price": -32.25,
+    "Date": "2026-06-12"
+  },
+  {
+    "Instrument": "CNU26-U27",
+    "Yesterday Volume": 49,
+    "10D Avg Vol": 17.1,
+    "Vol Ratio": 2.87,
+    "Yesterday Range": 2.75,
+    "5D ATR": 2.75,
+    "Max Volume Price": -39.75,
+    "Date": "2026-06-12"
+  },
+  {
+    "Instrument": "SBU26-X27",
+    "Yesterday Volume": 8,
+    "10D Avg Vol": 2.8,
+    "Vol Ratio": 2.86,
+    "Yesterday Range": 0.5,
+    "5D ATR": 3.0,
+    "Max Volume Price": -2.0,
+    "Date": "2026-06-12"
+  },
+  {
+    "Instrument": "SMQ26-N27",
+    "Yesterday Volume": 8,
+    "10D Avg Vol": 3.1,
+    "Vol Ratio": 2.58,
+    "Yesterday Range": 0.0,
+    "5D ATR": 7.3,
+    "Max Volume Price": -14.0,
+    "Date": "2026-06-12"
+  },
+  {
+    "Instrument": "CRSN26-F27",
+    "Yesterday Volume": 1002,
+    "10D Avg Vol": 302.9,
+    "Vol Ratio": 3.31,
+    "Yesterday Range": 0.6,
+    "5D ATR": 3.3,
+    "Max Volume Price": -16.9,
+    "Date": "2026-06-12"
+  },
+  {
+    "Instrument": "FCPOX26-X27",
+    "Yesterday Volume": 4,
+    "10D Avg Vol": 1.8,
+    "Vol Ratio": 2.22,
+    "Yesterday Range": 1.0,
+    "5D ATR": 11.0,
+    "Max Volume Price": 92.0,
+    "Date": "2026-06-12"
+  },
+  {
+    "Instrument": "WU26-Z27",
+    "Yesterday Volume": 7,
+    "10D Avg Vol": 3.4,
+    "Vol Ratio": 2.06,
+    "Yesterday Range": 0.25,
+    "5D ATR": 3.3,
+    "Max Volume Price": NaN,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "WN26-Z27",
+    "Yesterday Volume": 12,
+    "10D Avg Vol": 4.9,
+    "Vol Ratio": 2.45,
+    "Yesterday Range": 0.75,
+    "5D ATR": 3.55,
+    "Max Volume Price": NaN,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "SMV26-N27",
+    "Yesterday Volume": 26,
+    "10D Avg Vol": 9.1,
+    "Vol Ratio": 2.86,
+    "Yesterday Range": 1.9,
+    "5D ATR": 2.5,
+    "Max Volume Price": NaN,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "SMV26-U27",
+    "Yesterday Volume": 40,
+    "10D Avg Vol": 10.3,
+    "Vol Ratio": 3.88,
+    "Yesterday Range": 2.7,
+    "5D ATR": 1.9,
+    "Max Volume Price": NaN,
+    "Date": "2026-06-11"
+  },
+  {
+    "Instrument": "BOQ26-N27",
+    "Yesterday Volume": 15,
+    "10D Avg Vol": 4.9,
+    "Vol Ratio": 3.06,
+    "Yesterday Range": 0.14,
+    "5D ATR": 0.6,
+    "Max Volume Price": NaN,
+    "Date": "2026-06-09"
+  },
+  {
+    "Instrument": "CRSX26-N27",
+    "Yesterday Volume": 13,
+    "10D Avg Vol": 3.5,
+    "Vol Ratio": 3.71,
+    "Yesterday Range": 3.2,
+    "5D ATR": 4.9,
+    "Max Volume Price": NaN,
+    "Date": "2026-06-09"
+  },
+  {
+    "Instrument": "FCPOV26-U27",
+    "Yesterday Volume": 10,
+    "10D Avg Vol": 4.8,
+    "Vol Ratio": 2.08,
+    "Yesterday Range": 18.0,
+    "5D ATR": 28.4,
+    "Max Volume Price": NaN,
+    "Date": "2026-06-05"
+  },
+  {
+    "Instrument": "FCPON26-N27",
+    "Yesterday Volume": 10,
+    "10D Avg Vol": 4.4,
+    "Vol Ratio": 2.27,
+    "Yesterday Range": 1.0,
+    "5D ATR": 18.0,
+    "Max Volume Price": NaN,
+    "Date": "2026-05-13"
+  }
+]
