@@ -1056,17 +1056,6 @@
     "Product": "Wheat"
   },
   {
-    "Instrument": "WH27-Z27",
-    "Yesterday Volume": 25,
-    "10D Avg Vol": 7.9,
-    "Vol Ratio": 3.16,
-    "Yesterday Range": 0.0,
-    "5D ATR": 2.05,
-    "Max Volume Price": -40.75,
-    "Date": "2026-06-18",
-    "Product": "Wheat"
-  },
-  {
     "Instrument": "KWU26-H27",
     "Yesterday Volume": 1163,
     "10D Avg Vol": 679.5,
@@ -1118,17 +1107,6 @@
     "Yesterday Range": 4.25,
     "5D ATR": 3.05,
     "Max Volume Price": -6.0,
-    "Date": "2026-06-18",
-    "Product": "Soybeans"
-  },
-  {
-    "Instrument": "SBN26-X27",
-    "Yesterday Volume": 8,
-    "10D Avg Vol": 1.3,
-    "Vol Ratio": 6.15,
-    "Yesterday Range": 0.25,
-    "5D ATR": 14.75,
-    "Max Volume Price": -4.75,
     "Date": "2026-06-18",
     "Product": "Soybeans"
   },
@@ -1320,6 +1298,193 @@
     "Product": "Wheat"
   },
   {
+    "Instrument": "FCPOV26-N27",
+    "Yesterday Volume": 27,
+    "10D Avg Vol": 6.2,
+    "Vol Ratio": 4.35,
+    "Yesterday Range": 13.0,
+    "5D ATR": 34.0,
+    "Max Volume Price": NaN,
+    "Date": "2026-06-12",
+    "Product": "Palm Oil"
+  },
+  {
+    "Instrument": "WZ26-K27",
+    "Yesterday Volume": 819,
+    "10D Avg Vol": 429.7,
+    "Vol Ratio": 1.91,
+    "Yesterday Range": 1.75,
+    "5D ATR": 3.25,
+    "Max Volume Price": -22.75,
+    "Date": "2026-06-22",
+    "Product": "Wheat"
+  },
+  {
+    "Instrument": "KWZ26-N27",
+    "Yesterday Volume": 180,
+    "10D Avg Vol": 109.9,
+    "Vol Ratio": 1.64,
+    "Yesterday Range": 4.0,
+    "5D ATR": 3.55,
+    "Max Volume Price": -22.5,
+    "Date": "2026-06-22",
+    "Product": "Wheat"
+  },
+  {
+    "Instrument": "CNH27-U27",
+    "Yesterday Volume": 167,
+    "10D Avg Vol": 14.8,
+    "Vol Ratio": 11.28,
+    "Yesterday Range": 0.75,
+    "5D ATR": 1.25,
+    "Max Volume Price": -7.75,
+    "Date": "2026-06-22",
+    "Product": "Corn"
+  },
+  {
+    "Instrument": "CNZ26-U27",
+    "Yesterday Volume": 122,
+    "10D Avg Vol": 50.5,
+    "Vol Ratio": 2.42,
+    "Yesterday Range": 1.0,
+    "5D ATR": 2.5,
+    "Max Volume Price": -22.25,
+    "Date": "2026-06-22",
+    "Product": "Corn"
+  },
+  {
+    "Instrument": "SMU26-F27",
+    "Yesterday Volume": 210,
+    "10D Avg Vol": 134.2,
+    "Vol Ratio": 1.56,
+    "Yesterday Range": 1.4,
+    "5D ATR": 1.3,
+    "Max Volume Price": -5.5,
+    "Date": "2026-06-22",
+    "Product": "Soy Meal"
+  },
+  {
+    "Instrument": "BOQ26-V26",
+    "Yesterday Volume": 1579,
+    "10D Avg Vol": 936.4,
+    "Vol Ratio": 1.69,
+    "Yesterday Range": 0.33,
+    "5D ATR": 0.43,
+    "Max Volume Price": 2.06,
+    "Date": "2026-06-22",
+    "Product": "Soy Oil"
+  },
+  {
+    "Instrument": "BOV26-K27",
+    "Yesterday Volume": 56,
+    "10D Avg Vol": 18.3,
+    "Vol Ratio": 3.06,
+    "Yesterday Range": 0.02,
+    "5D ATR": 0.25,
+    "Max Volume Price": 1.67,
+    "Date": "2026-06-22",
+    "Product": "Soy Oil"
+  },
+  {
+    "Instrument": "BOU26-K27",
+    "Yesterday Volume": 25,
+    "10D Avg Vol": 11.8,
+    "Vol Ratio": 2.12,
+    "Yesterday Range": 0.22,
+    "5D ATR": 0.4,
+    "Max Volume Price": 2.63,
+    "Date": "2026-06-22",
+    "Product": "Soy Oil"
+  },
+  {
+    "Instrument": "CRSF27-K27",
+    "Yesterday Volume": 13,
+    "10D Avg Vol": 7.7,
+    "Vol Ratio": 1.69,
+    "Yesterday Range": 0.6,
+    "5D ATR": 1.4,
+    "Max Volume Price": -7.4,
+    "Date": "2026-06-22",
+    "Product": "Canola / RS"
+  },
+  {
+    "Instrument": "FCPOV26-Z26",
+    "Yesterday Volume": 629,
+    "10D Avg Vol": 292.3,
+    "Vol Ratio": 2.15,
+    "Yesterday Range": 17.0,
+    "5D ATR": 14.6,
+    "Max Volume Price": -56.0,
+    "Date": "2026-06-22",
+    "Product": "Palm Oil"
+  },
+  {
+    "Instrument": "FCPOU26-Z26",
+    "Yesterday Volume": 769,
+    "10D Avg Vol": 282.2,
+    "Vol Ratio": 2.73,
+    "Yesterday Range": 28.0,
+    "5D ATR": 21.0,
+    "Max Volume Price": -86.0,
+    "Date": "2026-06-22",
+    "Product": "Palm Oil"
+  },
+  {
+    "Instrument": "FCPOU26-F27",
+    "Yesterday Volume": 388,
+    "10D Avg Vol": 239.9,
+    "Vol Ratio": 1.62,
+    "Yesterday Range": 32.0,
+    "5D ATR": 27.0,
+    "Max Volume Price": -98.0,
+    "Date": "2026-06-22",
+    "Product": "Palm Oil"
+  },
+  {
+    "Instrument": "FCPOV26-K27",
+    "Yesterday Volume": 39,
+    "10D Avg Vol": 15.4,
+    "Vol Ratio": 2.53,
+    "Yesterday Range": 14.0,
+    "5D ATR": 24.0,
+    "Max Volume Price": -20.0,
+    "Date": "2026-06-22",
+    "Product": "Palm Oil"
+  },
+  {
+    "Instrument": "FCPOU26-K27",
+    "Yesterday Volume": 68,
+    "10D Avg Vol": 26.4,
+    "Vol Ratio": 2.58,
+    "Yesterday Range": 20.0,
+    "5D ATR": 32.0,
+    "Max Volume Price": -46.0,
+    "Date": "2026-06-22",
+    "Product": "Palm Oil"
+  },
+  {
+    "Instrument": "WH27-Z27",
+    "Yesterday Volume": 25,
+    "10D Avg Vol": 7.9,
+    "Vol Ratio": 3.16,
+    "Yesterday Range": 0.0,
+    "5D ATR": 2.05,
+    "Max Volume Price": NaN,
+    "Date": "2026-06-18",
+    "Product": "Wheat"
+  },
+  {
+    "Instrument": "SBN26-X27",
+    "Yesterday Volume": 8,
+    "10D Avg Vol": 1.3,
+    "Vol Ratio": 6.15,
+    "Yesterday Range": 0.25,
+    "5D ATR": 14.75,
+    "Max Volume Price": NaN,
+    "Date": "2026-06-18",
+    "Product": "Soybeans"
+  },
+  {
     "Instrument": "WU26-Z27",
     "Yesterday Volume": 10,
     "10D Avg Vol": 3.6,
@@ -1340,17 +1505,6 @@
     "Max Volume Price": NaN,
     "Date": "2026-06-15",
     "Product": "Wheat"
-  },
-  {
-    "Instrument": "FCPOV26-N27",
-    "Yesterday Volume": 27,
-    "10D Avg Vol": 6.2,
-    "Vol Ratio": 4.35,
-    "Yesterday Range": 13.0,
-    "5D ATR": 34.0,
-    "Max Volume Price": NaN,
-    "Date": "2026-06-12",
-    "Product": "Palm Oil"
   },
   {
     "Instrument": "BOQ26-N27",
