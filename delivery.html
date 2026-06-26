@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CME Delivery Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0d0d0d;color:#f0ece0;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+
+  /* ── LOGIN ── */
+  #login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh}
+  .login-box{background:#141414;border:1px solid #222;border-radius:14px;padding:40px 44px;width:340px;text-align:center}
+  .login-box h2{font-size:18px;font-weight:700;margin-bottom:4px}
+  .login-box p{font-size:11px;color:#444;margin-bottom:28px}
+  .login-box input{width:100%;background:#0d0d0d;border:1px solid #2a2a2a;border-radius:7px;padding:10px 12px;color:#f0ece0;font-size:13px;margin-bottom:12px;outline:none}
+  .login-box input:focus{border-color:#444}
+  .login-box button{width:100%;background:#c8a96e;border:none;border-radius:7px;padding:11px;color:#0d0d0d;font-weight:700;font-size:13px;cursor:pointer;margin-top:4px}
+  .login-box button:hover{background:#d4b87a}
+  .login-error{color:#e07a5f;font-size:11px;margin-top:8px;min-height:16px}
+
+  /* ── APP ── */
+  #app{display:none}
+
+  /* ── HEADER ── */
+  .header{border-bottom:1px solid #1a1a1a;padding:18px 24px 12px}
+  .header-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+  .header-eyebrow{font-size:9px;color:#333;letter-spacing:.18em;text-transform:uppercase;margin-bottom:5px}
+  .header-title{font-size:20px;font-weight:700}
+  .header-meta{text-align:right;font-size:9px;color:#2a2a2a;line-height:1.7}
+  .header-meta .latest{font-size:13px;font-weight:600;color:#999}
+  .header-nav{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+  .tab-btn{padding:5px 13px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:500;transition:all .12s;background:#181818;color:#666}
+  .tab-btn.active{color:#0d0d0d}
+  .nav-spacer{flex:1}
+  .nav-link{padding:5px 11px;border-radius:6px;border:1px solid #2a2a2a;cursor:pointer;font-size:11px;background:transparent;color:#555;text-decoration:none}
+  .nav-link:hover{color:#888;border-color:#444}
+  .logout-btn{padding:5px 11px;border-radius:6px;border:1px solid #222;cursor:pointer;font-size:11px;background:transparent;color:#444}
+  .logout-btn:hover{color:#e07a5f;border-color:#e07a5f44}
+
+  /* ── CONTENT ── */
+  .content{padding:20px 24px}
+
+  /* ── SUMMARY STRIP ── */
+  .summary-strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:20px}
+  .summary-card{background:#141414;border:1px solid #1e1e1e;border-radius:10px;padding:12px 14px}
+  .summary-card .sc-product{font-size:10px;color:#444;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em}
+  .summary-card .sc-value{font-size:22px;font-weight:700;line-height:1}
+  .summary-card .sc-delta{font-size:11px;margin-top:4px}
+  .delta-up{color:#4ade80}
+  .delta-down{color:#f87171}
+  .delta-flat{color:#555}
+
+  /* ── CHART GRID ── */
+  .chart-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:16px}
+  .chart-card{background:#141414;border:1px solid #1e1e1e;border-radius:12px;padding:16px 18px}
+  .chart-card-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+  .chart-card-title{font-size:13px;font-weight:600}
+  .chart-card-latest{font-size:11px;color:#555}
+  .chart-wrapper{position:relative;height:160px}
+
+  /* ── NO DATA ── */
+  .no-data{display:flex;align-items:center;justify-content:center;height:200px;color:#333;font-size:13px}
+
+  /* ── FOOTER ── */
+  .footer{padding:16px 24px;font-size:10px;color:#2a2a2a;border-top:1px solid #161616;margin-top:8px}
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="login-screen">
+  <div class="login-box">
+    <h2>CME Delivery</h2>
+    <p>Deliverable Commodities Under Registration</p>
+    <input id="u" type="text" placeholder="Username" autocomplete="username"/>
+    <input id="p" type="password" placeholder="Password" autocomplete="current-password"/>
+    <button onclick="doLogin()">Sign In</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app">
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="header-eyebrow">CME Group · CBOT</div>
+        <div class="header-title">Delivery Dashboard</div>
+      </div>
+      <div class="header-meta">
+        <div>Deliverable Commodities Under Registration</div>
+        <div class="latest" id="latest-date">—</div>
+      </div>
+    </div>
+    <div class="header-nav" id="tab-nav"></div>
+  </div>
+  <div class="content" id="main-content">
+    <div class="no-data">No data loaded yet. Upload an XLS file to delivery-data/ and run the workflow.</div>
+  </div>
+  <div class="footer">Source: CME Group · Deliverable Commodities Under Registration · Updated daily via GitHub Actions</div>
+</div>
+
+<script>
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+const USERS = { 'trader': 'cot2026', 'admin': 'admin123' };
+
+function doLogin() {
+  const u = document.getElementById('u').value.trim();
+  const p = document.getElementById('p').value;
+  if (USERS[u] && USERS[u] === p) {
+    sessionStorage.setItem('dl_auth', u);
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    init();
+  } else {
+    document.getElementById('login-error').textContent = 'Invalid credentials';
+  }
+}
+document.getElementById('p').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+if (sessionStorage.getItem('dl_auth')) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+}
+
+// ── DATA (injected by extract_delivery.py) ───────────────────────────────────
+// @@DELIVERY_DATA_START@@
+const DELIVERY_DATA = {
+  "2026-06-25": {
+    "Wheat": 254,
+    "Oats": 208,
+    "Corn": 382,
+    "Soybeans": 800,
+    "Soybean Oil": 869,
+    "Soybean Meal": 81,
+    "KC Wheat": 182
+  }
+};
+// @@DELIVERY_DATA_END@@
+
+// ── PRODUCT COLOURS ───────────────────────────────────────────────────────────
+const COLOURS = {
+  "Wheat":        "#c8a96e",
+  "Corn":         "#4ade80",
+  "Oats":         "#a78bfa",
+  "Soybeans":     "#60a5fa",
+  "Soybean Oil":  "#f97316",
+  "Soybean Meal": "#e879f9",
+  "Rough Rice":   "#94a3b8",
+  "KC Wheat":     "#fbbf24",
+  "Ethanol":      "#34d399",
+};
+const DEFAULT_COLOUR = "#6b7280";
+
+// Tab grouping
+const TABS = [
+  { id: "grains",   label: "Grains",     products: ["Wheat", "KC Wheat", "Corn", "Oats", "Rough Rice"] },
+  { id: "oilseeds", label: "Oilseeds",   products: ["Soybeans", "Soybean Oil", "Soybean Meal"] },
+  { id: "all",      label: "All",        products: null }, // null = all products in data
+];
+
+let activeTab = "grains";
+let charts = {};
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+function init() {
+  const dates = Object.keys(DELIVERY_DATA).sort();
+  if (dates.length === 0) {
+    document.getElementById('main-content').innerHTML =
+      '<div class="no-data">No data yet. Drop a CME XLS into delivery-data/ and commit.</div>';
+    return;
+  }
+
+  // Latest date badge
+  const latestDate = dates[dates.length - 1];
+  const d = new Date(latestDate + 'T00:00:00');
+  document.getElementById('latest-date').textContent =
+    d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+
+  renderNav(dates);
+  renderTab(dates);
+}
+
+function allProducts(dates) {
+  const set = new Set();
+  dates.forEach(d => Object.keys(DELIVERY_DATA[d]).forEach(p => set.add(p)));
+  return [...set].sort();
+}
+
+function renderNav(dates) {
+  const nav = document.getElementById('tab-nav');
+  nav.innerHTML = TABS.map(t =>
+    `<button class="tab-btn${activeTab===t.id?' active':''}" 
+       style="${activeTab===t.id?'background:#c8a96e':''}"
+       onclick="switchTab('${t.id}')">${t.label}</button>`
+  ).join('') +
+  `<div class="nav-spacer"></div>
+   <a href="platts.html" class="nav-link">Platts →</a>
+   <a href="index.html" class="nav-link">← COT Dashboard</a>
+   <button class="logout-btn" onclick="doLogout()">Sign out</button>`;
+}
+
+function switchTab(id) {
+  activeTab = id;
+  destroyCharts();
+  const dates = Object.keys(DELIVERY_DATA).sort();
+  renderNav(dates);
+  renderTab(dates);
+}
+
+function doLogout() {
+  sessionStorage.removeItem('dl_auth');
+  location.reload();
+}
+
+// ── RENDER TAB ────────────────────────────────────────────────────────────────
+function renderTab(dates) {
+  const tab = TABS.find(t => t.id === activeTab);
+  const products = tab.products || allProducts(dates);
+  // Filter to only products that have actual data
+  const activeProducts = products.filter(p =>
+    dates.some(d => DELIVERY_DATA[d][p] !== undefined)
+  );
+
+  const content = document.getElementById('main-content');
+
+  if (activeProducts.length === 0) {
+    content.innerHTML = '<div class="no-data">No data for this tab yet.</div>';
+    return;
+  }
+
+  // Summary strip
+  const latestDate = dates[dates.length - 1];
+  const prevDate   = dates.length > 1 ? dates[dates.length - 2] : null;
+
+  const summaryHTML = activeProducts.map(p => {
+    const val  = DELIVERY_DATA[latestDate]?.[p] ?? null;
+    const prev = prevDate ? (DELIVERY_DATA[prevDate]?.[p] ?? null) : null;
+    const delta = (val !== null && prev !== null) ? val - prev : null;
+    const colour = COLOURS[p] || DEFAULT_COLOUR;
+    let deltaHTML = '<span class="delta-flat">—</span>';
+    if (delta !== null) {
+      if (delta > 0) deltaHTML = `<span class="delta-up">▲ ${delta.toLocaleString()}</span>`;
+      else if (delta < 0) deltaHTML = `<span class="delta-down">▼ ${Math.abs(delta).toLocaleString()}</span>`;
+      else deltaHTML = `<span class="delta-flat">─ flat</span>`;
+    }
+    return `<div class="summary-card">
+      <div class="sc-product" style="color:${colour}">${p}</div>
+      <div class="sc-value">${val !== null ? val.toLocaleString() : '—'}</div>
+      <div class="sc-delta">${deltaHTML} vs prev</div>
+    </div>`;
+  }).join('');
+
+  // Chart grid
+  const chartsHTML = activeProducts.map(p =>
+    `<div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title" style="color:${COLOURS[p]||DEFAULT_COLOUR}">${p}</div>
+        <div class="chart-card-latest" id="cl-${p.replace(/ /g,'_')}"></div>
+      </div>
+      <div class="chart-wrapper"><canvas id="chart-${p.replace(/ /g,'_')}"></canvas></div>
+    </div>`
+  ).join('');
+
+  content.innerHTML =
+    `<div class="summary-strip">${summaryHTML}</div>
+     <div class="chart-grid">${chartsHTML}</div>`;
+
+  // Build charts
+  activeProducts.forEach(p => buildChart(p, dates));
+}
+
+// ── BUILD CHART ───────────────────────────────────────────────────────────────
+function buildChart(product, dates) {
+  const id = product.replace(/ /g, '_');
+  const canvas = document.getElementById('chart-' + id);
+  if (!canvas) return;
+
+  // Only include dates that have this product
+  const validDates = dates.filter(d => DELIVERY_DATA[d][product] !== undefined);
+  const labels = validDates.map(d => {
+    const dt = new Date(d + 'T00:00:00');
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  });
+  const values = validDates.map(d => DELIVERY_DATA[d][product]);
+
+  const colour = COLOURS[product] || DEFAULT_COLOUR;
+  const colourFade = colour + '22';
+
+  // Latest label
+  const latest = values[values.length - 1];
+  const el = document.getElementById('cl-' + id);
+  if (el && latest !== undefined) el.textContent = latest.toLocaleString() + ' contracts';
+
+  const ctx = canvas.getContext('2d');
+  charts[id] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        borderColor: colour,
+        borderWidth: 2,
+        backgroundColor: colourFade,
+        fill: true,
+        tension: 0.3,
+        pointRadius: validDates.length > 30 ? 0 : 3,
+        pointHoverRadius: 5,
+        pointBackgroundColor: colour,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a1a1a',
+          borderColor: '#2a2a2a',
+          borderWidth: 1,
+          titleColor: '#888',
+          bodyColor: '#f0ece0',
+          callbacks: {
+            label: ctx => `${ctx.parsed.y.toLocaleString()} contracts`
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: '#444',
+            font: { size: 10 },
+            maxTicksLimit: 8,
+            maxRotation: 0,
+          },
+          grid: { color: '#161616' }
+        },
+        y: {
+          ticks: {
+            color: '#444',
+            font: { size: 10 },
+            callback: v => v.toLocaleString()
+          },
+          grid: { color: '#181818' },
+          beginAtZero: false,
+        }
+      }
+    }
+  });
+}
+
+function destroyCharts() {
+  Object.values(charts).forEach(c => c.destroy());
+  charts = {};
+}
+
+// ── BOOT ──────────────────────────────────────────────────────────────────────
+if (sessionStorage.getItem('dl_auth')) init();
+</script>
+</body>
+</html>
