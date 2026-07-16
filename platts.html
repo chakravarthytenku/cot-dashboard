@@ -33,6 +33,16 @@
   .view-btn{padding:5px 11px;border-radius:6px;border:1px solid #222;cursor:pointer;font-size:11px;background:transparent;color:#444}
   .view-btn.active{background:#1e1e1e;color:#bbb}
   .nav-spacer{flex:1}
+  /* ── DATE FILTER ── */
+  .date-filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid #1a1a1a}
+  .date-filter label{font-size:9px;color:#3a3a3a;letter-spacing:.1em;text-transform:uppercase}
+  .date-filter select{background:#0d0d0d;border:1px solid #2a2a2a;border-radius:6px;padding:5px 8px;color:#f0ece0;font-size:11px;outline:none;cursor:pointer}
+  .date-filter select:focus{border-color:#444}
+  .df-btn{padding:5px 11px;border-radius:6px;border:1px solid #2a2a2a;cursor:pointer;font-size:11px;background:transparent;color:#666}
+  .df-btn:hover{color:#bbb;border-color:#444}
+  .df-btn.primary{background:#c8a96e;border-color:#c8a96e;color:#0d0d0d;font-weight:600}
+  .df-btn.primary:hover{background:#d4b87a}
+  .df-info{font-size:10px;color:#3a3a3a;margin-left:2px}
   .nav-link{padding:5px 11px;border-radius:6px;border:1px solid #2a2a2a;cursor:pointer;font-size:11px;background:transparent;color:#555;text-decoration:none}
   .nav-link:hover{color:#888;border-color:#444}
   .logout-btn{padding:5px 11px;border-radius:6px;border:1px solid #222;cursor:pointer;font-size:11px;background:transparent;color:#444}
@@ -125,6 +135,16 @@
       </div>
     </div>
     <div class="header-nav" id="tab-nav"></div>
+    <div class="date-filter" id="date-filter">
+      <label>From</label>
+      <select id="df-from"></select>
+      <label>To</label>
+      <select id="df-to"></select>
+      <button class="df-btn primary" onclick="applyDateFilter()">Apply</button>
+      <button class="df-btn" onclick="resetDateFilter()">Recent 20</button>
+      <button class="df-btn" onclick="showAllData()">Show all</button>
+      <span class="df-info" id="df-info"></span>
+    </div>
   </div>
   <div class="content" id="content"></div>
 </div>
@@ -256,6 +276,89 @@ const TABS = [
 ];
 
 // ═══════════════════════════════════════════════════════
+// DATE FILTER  ·  DATA = full saved store  ·  VIEW = filtered slice
+// ═══════════════════════════════════════════════════════
+const MONTHS = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+const DEFAULT_RECENT = 20;
+
+// Parse "19-May" -> sortable ordinal. Handles year rollover: if a month is
+// far ahead of the following row's month, it belongs to the previous year.
+function parseDates() {
+  // assign a running year, incrementing when month sequence wraps (e.g. Dec -> Jan)
+  let year = 2000, prevM = -1;
+  return DATA.map((r, i) => {
+    const [d, mon] = r.date.split('-');
+    const m = MONTHS[mon] ?? 0;
+    if (prevM !== -1 && m < prevM) year++;   // month went backwards → new year
+    prevM = m;
+    return { idx: i, date: r.date, ord: new Date(year, m, parseInt(d, 10)).getTime() };
+  });
+}
+const DATE_META = parseDates();
+
+// Current view window, expressed as inclusive DATA indices.
+let viewStart = Math.max(0, DATA.length - DEFAULT_RECENT);
+let viewEnd = DATA.length - 1;
+
+// VIEW is what every render/helper reads from.
+let VIEW = DATA.slice(viewStart, viewEnd + 1);
+
+function rebuildView() {
+  VIEW = DATA.slice(viewStart, viewEnd + 1);
+}
+
+function populateDateSelectors() {
+  const from = document.getElementById('df-from');
+  const to = document.getElementById('df-to');
+  const opts = DATE_META.map(d => `<option value="${d.idx}">${d.date}</option>`).join('');
+  from.innerHTML = opts;
+  to.innerHTML = opts;
+  from.value = viewStart;
+  to.value = viewEnd;
+  updateDfInfo();
+}
+
+function updateDfInfo() {
+  const info = document.getElementById('df-info');
+  if (!info) return;
+  const span = VIEW.length;
+  info.textContent = `showing ${span} of ${DATA.length} days · ${VIEW[0]?.date ?? '—'} → ${VIEW[VIEW.length-1]?.date ?? '—'}`;
+}
+
+function applyDateFilter() {
+  let a = parseInt(document.getElementById('df-from').value, 10);
+  let b = parseInt(document.getElementById('df-to').value, 10);
+  if (isNaN(a) || isNaN(b)) return;
+  if (a > b) [a, b] = [b, a];            // tolerate reversed selection
+  viewStart = a; viewEnd = b;
+  rebuildView(); refreshAll();
+}
+
+function resetDateFilter() {
+  viewStart = Math.max(0, DATA.length - DEFAULT_RECENT);
+  viewEnd = DATA.length - 1;
+  rebuildView();
+  document.getElementById('df-from').value = viewStart;
+  document.getElementById('df-to').value = viewEnd;
+  refreshAll();
+}
+
+function showAllData() {
+  viewStart = 0; viewEnd = DATA.length - 1;
+  rebuildView();
+  document.getElementById('df-from').value = viewStart;
+  document.getElementById('df-to').value = viewEnd;
+  refreshAll();
+}
+
+function refreshAll() {
+  destroyAll();
+  updateHeaderMeta();
+  updateDfInfo();
+  renderContent();
+}
+
+// ═══════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════
 const fmt = v => (v === null || v === undefined) ? '—'
@@ -263,7 +366,7 @@ const fmt = v => (v === null || v === undefined) ? '—'
 
 function fillForward(sym) {
   let last = null;
-  return DATA.map(r => {
+  return VIEW.map(r => {
     const v = r[sym];
     if (v !== null && v !== undefined) last = v;
     return { date: r.date, v: last };
@@ -271,7 +374,7 @@ function fillForward(sym) {
 }
 
 function getLatestTwo(sym) {
-  const vals = DATA.map(d => d[sym]).filter(v => v !== null && v !== undefined);
+  const vals = VIEW.map(d => d[sym]).filter(v => v !== null && v !== undefined);
   if (vals.length < 2) return [vals[vals.length-1] ?? null, null];
   return [vals[vals.length-1], vals[vals.length-2]];
 }
@@ -366,13 +469,18 @@ let activeView = 'cards';
 // RENDER
 // ═══════════════════════════════════════════════════════
 function init() {
-  const last = DATA[DATA.length-1];
-  const prev = DATA[DATA.length-2];
-  document.getElementById('hd-latest').textContent = last.date;
-  document.getElementById('hd-prev').textContent = 'prev: ' + (prev ? prev.date : '—');
-  document.getElementById('hd-count').textContent = DATA.length + ' days loaded';
+  populateDateSelectors();
+  updateHeaderMeta();
   renderNav();
   renderContent();
+}
+
+function updateHeaderMeta() {
+  const last = VIEW[VIEW.length-1];
+  const prev = VIEW[VIEW.length-2];
+  document.getElementById('hd-latest').textContent = last ? last.date : '—';
+  document.getElementById('hd-prev').textContent = 'prev: ' + (prev ? prev.date : '—');
+  document.getElementById('hd-count').textContent = DATA.length + ' days loaded';
 }
 
 function renderNav() {
@@ -401,7 +509,7 @@ function renderContent() {
     <div class="section-header">
       <div class="section-bar" style="background:${tab.color}"></div>
       <span class="section-label" style="color:${tab.color}">${tab.label}</span>
-      <span class="section-meta">· ${tab.metrics.length} metrics · ${DATA.length} days</span>
+      <span class="section-meta">· ${tab.metrics.length} metrics · ${VIEW.length} of ${DATA.length} days</span>
     </div>
     <div id="main-view"></div>
     ${renderTable(tab)}
@@ -415,7 +523,7 @@ function renderCards(tab) {
   const view = document.getElementById('main-view');
   view.className = 'kpi-grid';
   view.innerHTML = tab.metrics.map((m, mi) => {
-    const latest = DATA[DATA.length-1][m.sym];
+    const latest = VIEW.length ? VIEW[VIEW.length-1][m.sym] : null;
     const d = delta(m.sym);
     const p = pct(m.sym);
     const pColor = p === null ? '#3a3a3a' : p > 0 ? '#4caf7d' : p < 0 ? '#e07a5f' : '#555';
@@ -469,12 +577,12 @@ function renderCharts(tab) {
 }
 
 function renderTable(tab) {
-  const last = DATA.length - 1;
-  const headers = DATA.map(d => `<th>${d.date}</th>`).join('');
+  const last = VIEW.length - 1;
+  const headers = VIEW.map(d => `<th>${d.date}</th>`).join('');
   const rows = tab.metrics.map((m, i) => {
     const d = delta(m.sym), p = pct(m.sym);
     const isUp = d !== null && d > 0, isDown = d !== null && d < 0;
-    const cells = DATA.map((row, ri) => {
+    const cells = VIEW.map((row, ri) => {
       const v = row[m.sym];
       let cls = 'val-old';
       if (v === null) cls = 'val-null';
