@@ -1,0 +1,33 @@
+name: Update CFTC Dashboard
+
+on:
+  push:
+    paths:
+      - 'cftc-data/**'
+
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run extraction
+        run: python scripts/extract_cftc.py
+
+      - name: Commit updated files
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add cftc.html cftc-history.json
+          git diff --cached --quiet || git commit -m "chore: update CFTC dashboard [skip ci]"
+          git push
